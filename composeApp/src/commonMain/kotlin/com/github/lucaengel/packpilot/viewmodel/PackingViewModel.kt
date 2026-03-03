@@ -15,7 +15,6 @@ class PackingViewModel(private val repository: PackingRepository) {
     val trips = repository.trips
 
     fun createTrip(title: String, listId: String, startDate: LocalDate, endDate: LocalDate) {
-        // Use a unique ID based on timestamp and random bits to prevent overwriting
         val tripId = "trip_${Clock.System.now().toEpochMilliseconds()}_${Random.nextInt(1000)}"
         val activityTitle = lists.value[listId]?.title ?: ""
         val tempTrip = Trip(
@@ -30,16 +29,31 @@ class PackingViewModel(private val repository: PackingRepository) {
 
         val listItems = repository.getItemsForList(listId)
         val generalItems = repository.getGeneralItems()
-        val allBaseItems = (listItems + generalItems).distinctBy { it.id }
 
-        val tripItems = allBaseItems.map { item ->
-            val calculatedQuantity = if (item.isPerDay) item.baseQuantity * days else item.baseQuantity
-            TripItem(
+        val tripItems = mutableListOf<TripItem>()
+
+        // Add Essential Items
+        generalItems.forEach { item ->
+            val qty = if (item.isPerDay) item.baseQuantity * days else item.baseQuantity
+            tripItems.add(TripItem(
                 id = "${item.id}_${Random.nextInt()}",
                 name = item.name,
-                quantity = calculatedQuantity,
-                originalItemId = item.id
-            )
+                quantity = qty,
+                originalItemId = item.id,
+                source = ItemSource.ESSENTIAL
+            ))
+        }
+
+        // Add Activity Items
+        listItems.forEach { item ->
+            val qty = if (item.isPerDay) item.baseQuantity * days else item.baseQuantity
+            tripItems.add(TripItem(
+                id = "${item.id}_${Random.nextInt()}",
+                name = item.name,
+                quantity = qty,
+                originalItemId = item.id,
+                source = ItemSource.ACTIVITY
+            ))
         }
 
         repository.addTrip(tempTrip.copy(items = tripItems))
@@ -82,7 +96,8 @@ class PackingViewModel(private val repository: PackingRepository) {
         val newItem = TripItem(
             id = "custom_${Random.nextInt()}",
             name = name,
-            quantity = quantity
+            quantity = quantity,
+            source = ItemSource.CUSTOM
         )
         repository.updateTrip(trip.copy(items = trip.items + newItem))
     }
@@ -95,6 +110,25 @@ class PackingViewModel(private val repository: PackingRepository) {
             itemIds = emptyList()
         )
         repository.addList(newList)
+    }
+
+    fun addItemToTripType(listId: String, name: String, baseQuantity: Int, isPerDay: Boolean) {
+        val newItemId = "item_${Random.nextInt()}"
+        val newItem = PackingItem(
+            id = newItemId,
+            name = name,
+            baseQuantity = baseQuantity,
+            isPerDay = isPerDay
+        )
+        repository.addItem(newItem)
+        
+        val list = lists.value[listId] ?: return
+        repository.addList(list.copy(itemIds = list.itemIds + newItemId))
+    }
+
+    fun removeItemFromTripType(listId: String, itemId: String) {
+        val list = lists.value[listId] ?: return
+        repository.addList(list.copy(itemIds = list.itemIds - itemId))
     }
 
     // General Items Management
@@ -144,5 +178,10 @@ class PackingViewModel(private val repository: PackingRepository) {
     fun observeGeneralItems(): Flow<List<PackingItem>> = combine(lists, items) { listsMap, itemsMap ->
         val generalList = listsMap.values.find { it.isGeneral } ?: return@combine emptyList<PackingItem>()
         generalList.itemIds.mapNotNull { itemsMap[it] }
+    }
+
+    fun observeItemsForList(listId: String): Flow<List<PackingItem>> = combine(lists, items) { listsMap, itemsMap ->
+        val list = listsMap[listId] ?: return@combine emptyList<PackingItem>()
+        list.itemIds.mapNotNull { itemsMap[it] }
     }
 }
