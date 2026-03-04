@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.jetbrains.compose)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlinx.serialization)
+    id("org.jetbrains.kotlinx.kover")
 }
 
 kotlin {
@@ -47,7 +48,8 @@ kotlin {
     }
 }
 
-android {
+// Use explicit LibraryExtension to avoid the deprecated android {} block in AGP 9.0+
+extensions.configure<com.android.build.api.dsl.LibraryExtension> {
     namespace = "com.github.lucaengel.packpilot"
     compileSdk = 36
     defaultConfig {
@@ -56,5 +58,18 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
+    }
+}
+
+kover {
+    reports {
+        verify {
+            rule {
+                bound {
+                    // In Kover 0.9.x, minValue is a Property<Int>
+                    minValue.set(80)
+                }
+            }
+        }
     }
 }
