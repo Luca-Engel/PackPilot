@@ -7,24 +7,33 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-class DataStoreManager(private val dataStore: DataStore<Preferences>) {
+interface IDataStoreManager {
+    val itemsJson: Flow<String?>
+    val listsJson: Flow<String?>
+    val tripsJson: Flow<String?>
+    suspend fun saveItems(json: String)
+    suspend fun saveLists(json: String)
+    suspend fun saveTrips(json: String)
+}
+
+open class DataStoreManager(private val dataStore: DataStore<Preferences>) : IDataStoreManager {
     private val ITEMS_KEY = stringPreferencesKey("items")
     private val LISTS_KEY = stringPreferencesKey("lists")
     private val TRIPS_KEY = stringPreferencesKey("trips")
 
-    val itemsJson: Flow<String?> = dataStore.data.map { it[ITEMS_KEY] }
-    val listsJson: Flow<String?> = dataStore.data.map { it[LISTS_KEY] }
-    val tripsJson: Flow<String?> = dataStore.data.map { it[TRIPS_KEY] }
+    override val itemsJson: Flow<String?> = dataStore.data.map { it[ITEMS_KEY] }
+    override val listsJson: Flow<String?> = dataStore.data.map { it[LISTS_KEY] }
+    override val tripsJson: Flow<String?> = dataStore.data.map { it[TRIPS_KEY] }
 
-    suspend fun saveItems(json: String) {
+    override suspend fun saveItems(json: String) {
         dataStore.edit { it[ITEMS_KEY] = json }
     }
 
-    suspend fun saveLists(json: String) {
+    override suspend fun saveLists(json: String) {
         dataStore.edit { it[LISTS_KEY] = json }
     }
 
-    suspend fun saveTrips(json: String) {
+    override suspend fun saveTrips(json: String) {
         dataStore.edit { it[TRIPS_KEY] = json }
     }
 }

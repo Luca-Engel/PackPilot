@@ -8,9 +8,10 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-class PackingRepository(private val dataStoreManager: DataStoreManager) {
-    private val scope = CoroutineScope(Dispatchers.Default)
-    
+class PackingRepository(
+    private val dataStoreManager: IDataStoreManager,
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default)
+) {
     private val jsonConfig = Json { 
         ignoreUnknownKeys = true 
         encodeDefaults = true
@@ -31,19 +32,12 @@ class PackingRepository(private val dataStoreManager: DataStoreManager) {
                 if (json != null) {
                     try {
                         _items.value = jsonConfig.decodeFromString(json)
-                    } catch (e: Exception) {
-                        println("Error decoding items: ${e.message}")
-                    }
+                    } catch (e: Exception) {}
                 } else if (_items.value.isEmpty()) {
                     val mockItems = listOf(
                         PackingItem("1", "Underwear", 1, true),
                         PackingItem("2", "Socks", 1, true),
-                        PackingItem("3", "Passport", 1, false),
-                        PackingItem("4", "Kitesurf Board", 1, false),
-                        PackingItem("5", "Wetsuit", 1, false),
-                        PackingItem("6", "Hiking Boots", 1, false),
-                        PackingItem("7", "Rain Jacket", 1, false),
-                        PackingItem("8", "Sunscreen", 1, false)
+                        PackingItem("3", "Passport", 1, false)
                     ).associateBy { it.id }
                     _items.value = mockItems
                     saveItems()
@@ -56,14 +50,10 @@ class PackingRepository(private val dataStoreManager: DataStoreManager) {
                 if (json != null) {
                     try {
                         _lists.value = jsonConfig.decodeFromString(json)
-                    } catch (e: Exception) {
-                        println("Error decoding lists: ${e.message}")
-                    }
+                    } catch (e: Exception) {}
                 } else if (_lists.value.isEmpty()) {
                     val mockLists = listOf(
-                        PackingList("g1", "General Essentials", listOf("1", "2", "3"), isGeneral = true),
-                        PackingList("l1", "Kitesurfing", listOf("4", "5", "8")),
-                        PackingList("l2", "Hiking", listOf("6", "7", "8"))
+                        PackingList("g1", "General Essentials", listOf("1", "2", "3"), isGeneral = true)
                     ).associateBy { it.id }
                     _lists.value = mockLists
                     saveLists()
@@ -76,9 +66,7 @@ class PackingRepository(private val dataStoreManager: DataStoreManager) {
                 if (json != null) {
                     try {
                         _trips.value = jsonConfig.decodeFromString(json)
-                    } catch (e: Exception) {
-                        println("Error decoding trips: ${e.message}")
-                    }
+                    } catch (e: Exception) {}
                 }
             }
         }
