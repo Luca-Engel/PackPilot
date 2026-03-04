@@ -15,6 +15,7 @@ class PackingViewModel(private val repository: PackingRepository) {
     val trips = repository.trips
 
     fun createTrip(title: String, listId: String, startDate: LocalDate, endDate: LocalDate) {
+        // Use a unique ID based on timestamp and random bits to prevent overwriting
         val tripId = "trip_${Clock.System.now().toEpochMilliseconds()}_${Random.nextInt(1000)}"
         val activityTitle = lists.value[listId]?.title ?: ""
         val tempTrip = Trip(
@@ -61,7 +62,31 @@ class PackingViewModel(private val repository: PackingRepository) {
 
     fun updateTripDates(tripId: String, startDate: LocalDate, endDate: LocalDate) {
         val trip = trips.value[tripId] ?: return
-        repository.updateTrip(trip.copy(startDate = startDate, endDate = endDate))
+        val newDays = (endDate.toEpochDays() - startDate.toEpochDays() + 1).coerceAtLeast(1)
+        
+        val itemsMap = items.value
+        
+        val updatedItems = trip.items.map { item ->
+            if (item.source == ItemSource.CUSTOM || item.originalItemId == null) {
+                // Keep custom items as they are
+                item
+            } else {
+                // Recompute template-based items
+                val baseItem = itemsMap[item.originalItemId]
+                if (baseItem != null) {
+                    val newQty = if (baseItem.isPerDay) baseItem.baseQuantity * newDays else baseItem.baseQuantity
+                    item.copy(quantity = newQty)
+                } else {
+                    item
+                }
+            }
+        }
+        
+        repository.updateTrip(trip.copy(
+            startDate = startDate,
+            endDate = endDate,
+            items = updatedItems
+        ))
     }
 
     fun deleteTrip(tripId: String) {
