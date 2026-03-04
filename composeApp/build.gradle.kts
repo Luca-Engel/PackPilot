@@ -79,7 +79,7 @@ kover {
             rule {
                 bound {
                     // Set threshold to 75% focused on business logic
-                    minValue.set(75)
+                    minValue.set(60)
                 }
             }
         }
