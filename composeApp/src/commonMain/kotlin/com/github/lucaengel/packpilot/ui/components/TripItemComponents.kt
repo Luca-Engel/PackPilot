@@ -19,7 +19,12 @@ import com.github.lucaengel.packpilot.model.TripItem
 import com.github.lucaengel.packpilot.viewmodel.PackingViewModel
 
 @Composable
-fun ImprovedTripItemRow(tripItem: TripItem, tripId: String, viewModel: PackingViewModel) {
+fun ImprovedTripItemRow(
+    tripItem: TripItem, 
+    tripId: String, 
+    viewModel: PackingViewModel,
+    isEditMode: Boolean
+) {
     val isPacked = tripItem.isPacked
     Surface(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)),
@@ -53,14 +58,16 @@ fun ImprovedTripItemRow(tripItem: TripItem, tripId: String, viewModel: PackingVi
                 }
             }
 
-            IconButton(onClick = { viewModel.updateTripItemQuantity(tripId, tripItem.id, tripItem.quantity - 1) }) {
-                Icon(Icons.Default.Remove, null, modifier = Modifier.size(18.dp))
-            }
-            IconButton(onClick = { viewModel.updateTripItemQuantity(tripId, tripItem.id, tripItem.quantity + 1) }) {
-                Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
-            }
-            IconButton(onClick = { viewModel.removeTripItem(tripId, tripItem.id) }) {
-                Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+            if (isEditMode) {
+                IconButton(onClick = { viewModel.updateTripItemQuantity(tripId, tripItem.id, tripItem.quantity - 1) }) {
+                    Icon(Icons.Default.Remove, null, modifier = Modifier.size(18.dp))
+                }
+                IconButton(onClick = { viewModel.updateTripItemQuantity(tripId, tripItem.id, tripItem.quantity + 1) }) {
+                    Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+                }
+                IconButton(onClick = { viewModel.removeTripItem(tripId, tripItem.id) }) {
+                    Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                }
             }
         }
     }

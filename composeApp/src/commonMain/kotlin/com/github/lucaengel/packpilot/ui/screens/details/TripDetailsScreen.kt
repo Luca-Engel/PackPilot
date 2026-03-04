@@ -9,6 +9,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,6 +36,7 @@ fun TripDetailsScreen(viewModel: PackingViewModel, tripId: String, onBack: () ->
     val activityItems = trip.items.filter { it.source == ItemSource.ACTIVITY }
     val customItems = trip.items.filter { it.source == ItemSource.CUSTOM }
     
+    var isEditMode by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showAddCustomDialog by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -55,8 +57,16 @@ fun TripDetailsScreen(viewModel: PackingViewModel, tripId: String, onBack: () ->
                 },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
                 actions = {
+                    // Toggle Edit Mode
+                    IconButton(onClick = { isEditMode = !isEditMode }) {
+                        Icon(
+                            if (isEditMode) Icons.Default.EditCalendar else Icons.Default.Edit,
+                            contentDescription = if (isEditMode) "Disable Edit Mode" else "Enable Edit Mode",
+                            tint = if (isEditMode) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                        )
+                    }
                     IconButton(onClick = { showDatePicker = true }) {
-                        Icon(Icons.Default.EditCalendar, null)
+                        Icon(Icons.Default.DateRange, null)
                     }
                     IconButton(onClick = { showDeleteDialog = true }) {
                         Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error)
@@ -65,15 +75,17 @@ fun TripDetailsScreen(viewModel: PackingViewModel, tripId: String, onBack: () ->
             )
         },
         bottomBar = {
-            Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
-                Button(
-                    onClick = { showAddCustomDialog = true },
-                    modifier = Modifier.padding(16.dp).fillMaxWidth().height(56.dp),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Icon(Icons.Default.Add, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Add Custom Item")
+            if (isEditMode) {
+                Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = { showAddCustomDialog = true },
+                        modifier = Modifier.padding(16.dp).fillMaxWidth().height(56.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Icon(Icons.Default.Add, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Add Custom Item")
+                    }
                 }
             }
         }
@@ -105,17 +117,17 @@ fun TripDetailsScreen(viewModel: PackingViewModel, tripId: String, onBack: () ->
 
             if (essentialItems.isNotEmpty()) {
                 item { SectionHeader("Essential Clothes") }
-                items(essentialItems) { item -> ImprovedTripItemRow(item, tripId, viewModel) }
+                items(essentialItems) { item -> ImprovedTripItemRow(item, tripId, viewModel, isEditMode) }
             }
 
             if (activityItems.isNotEmpty()) {
                 item { SectionHeader("${trip.activityTitle} Items") }
-                items(activityItems) { item -> ImprovedTripItemRow(item, tripId, viewModel) }
+                items(activityItems) { item -> ImprovedTripItemRow(item, tripId, viewModel, isEditMode) }
             }
 
             if (customItems.isNotEmpty()) {
                 item { SectionHeader("Added for this trip") }
-                items(customItems) { item -> ImprovedTripItemRow(item, tripId, viewModel) }
+                items(customItems) { item -> ImprovedTripItemRow(item, tripId, viewModel, isEditMode) }
             }
         }
     }
