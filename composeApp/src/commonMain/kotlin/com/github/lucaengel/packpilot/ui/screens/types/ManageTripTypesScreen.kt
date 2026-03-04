@@ -12,6 +12,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
+import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Menu
@@ -26,11 +28,21 @@ import com.github.lucaengel.packpilot.viewmodel.PackingViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManageTripTypesScreen(viewModel: PackingViewModel, onBack: () -> Unit) {
+    // Best Practice: Clear history when leaving the screen via any method (system back or button)
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.clearHistory()
+        }
+    }
+
     val lists by viewModel.lists.collectAsState()
     val activityTypes = lists.values.filter { !it.isGeneral }
     var selectedTypeId by remember { mutableStateOf<String?>(null) }
     var showAddTypeDialog by remember { mutableStateOf(false) }
     var isSidebarVisible by remember { mutableStateOf(true) }
+    
+    val canUndo by viewModel.canUndo.collectAsState()
+    val canRedo by viewModel.canRedo.collectAsState()
 
     Scaffold(
         topBar = {
@@ -38,6 +50,14 @@ fun ManageTripTypesScreen(viewModel: PackingViewModel, onBack: () -> Unit) {
                 title = { Text("Trip Types") },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
                 actions = {
+                    if (canUndo || canRedo) {
+                        IconButton(onClick = { viewModel.undo() }, enabled = canUndo) {
+                            Icon(Icons.AutoMirrored.Filled.Undo, "Undo")
+                        }
+                        IconButton(onClick = { viewModel.redo() }, enabled = canRedo) {
+                            Icon(Icons.AutoMirrored.Filled.Redo, "Redo")
+                        }
+                    }
                     IconButton(onClick = { isSidebarVisible = !isSidebarVisible }) {
                         Icon(if (isSidebarVisible) Icons.AutoMirrored.Filled.MenuOpen else Icons.Default.Menu, contentDescription = "Toggle Sidebar")
                     }

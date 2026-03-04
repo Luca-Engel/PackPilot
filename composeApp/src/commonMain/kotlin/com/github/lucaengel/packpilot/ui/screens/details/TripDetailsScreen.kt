@@ -6,7 +6,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -29,9 +32,19 @@ import kotlinx.datetime.toLocalDateTime
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripDetailsScreen(viewModel: PackingViewModel, tripId: String, onBack: () -> Unit) {
+    // Clear history when leaving screen (handles system back button)
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.clearHistory()
+        }
+    }
+
     val trips by viewModel.trips.collectAsState()
     val trip = trips[tripId] ?: return
     
+    val canUndo by viewModel.canUndo.collectAsState()
+    val canRedo by viewModel.canRedo.collectAsState()
+
     val essentialItems = trip.items.filter { it.source == ItemSource.ESSENTIAL }
     val activityItems = trip.items.filter { it.source == ItemSource.ACTIVITY }
     val customItems = trip.items.filter { it.source == ItemSource.CUSTOM }
@@ -55,15 +68,27 @@ fun TripDetailsScreen(viewModel: PackingViewModel, tripId: String, onBack: () ->
                         Text(trip.activityTitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                     }
                 },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
+                navigationIcon = { 
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
+                },
                 actions = {
-                    // Toggle Edit Mode
-                    IconButton(onClick = { isEditMode = !isEditMode }) {
-                        Icon(
-                            if (isEditMode) Icons.Default.EditCalendar else Icons.Default.Edit,
-                            contentDescription = if (isEditMode) "Disable Edit Mode" else "Enable Edit Mode",
-                            tint = if (isEditMode) MaterialTheme.colorScheme.primary else LocalContentColor.current
-                        )
+                    if (isEditMode) {
+                        IconButton(onClick = { viewModel.undo() }, enabled = canUndo) {
+                            Icon(Icons.AutoMirrored.Filled.Undo, "Undo")
+                        }
+                        IconButton(onClick = { viewModel.redo() }, enabled = canRedo) {
+                            Icon(Icons.AutoMirrored.Filled.Redo, "Redo")
+                        }
+                        IconButton(onClick = { 
+                            viewModel.clearHistory()
+                            isEditMode = false 
+                        }) {
+                            Icon(Icons.Default.Check, "Save", tint = MaterialTheme.colorScheme.primary)
+                        }
+                    } else {
+                        IconButton(onClick = { isEditMode = true }) {
+                            Icon(Icons.Default.Edit, "Edit")
+                        }
                     }
                     IconButton(onClick = { showDatePicker = true }) {
                         Icon(Icons.Default.DateRange, null)

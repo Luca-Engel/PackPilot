@@ -109,6 +109,16 @@ class PackingRepository(
         saveTrips()
     }
 
+    // New helper for Undo/Redo
+    fun restoreState(items: Map<String, PackingItem>, lists: Map<String, PackingList>, trips: Map<String, Trip>) {
+        _items.value = items
+        _lists.value = lists
+        _trips.value = trips
+        saveItems()
+        saveLists()
+        saveTrips()
+    }
+
     fun getGeneralItems(): List<PackingItem> {
         val generalListIds = _lists.value.values.filter { it.isGeneral }.flatMap { it.itemIds }
         return generalListIds.mapNotNull { _items.value[it] }

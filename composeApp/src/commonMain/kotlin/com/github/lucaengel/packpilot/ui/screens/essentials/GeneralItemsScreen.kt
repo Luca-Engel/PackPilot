@@ -5,6 +5,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,14 +19,33 @@ import com.github.lucaengel.packpilot.viewmodel.PackingViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GeneralItemsScreen(viewModel: PackingViewModel, onBack: () -> Unit) {
+    // Reset history when screen is closed (including system back button)
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.clearHistory()
+        }
+    }
+
     val items by viewModel.observeGeneralItems().collectAsState(emptyList())
+    val canUndo by viewModel.canUndo.collectAsState()
+    val canRedo by viewModel.canRedo.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Essential Clothes") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } }
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
+                actions = {
+                    if (canUndo || canRedo) {
+                        IconButton(onClick = { viewModel.undo() }, enabled = canUndo) {
+                            Icon(Icons.AutoMirrored.Filled.Undo, "Undo")
+                        }
+                        IconButton(onClick = { viewModel.redo() }, enabled = canRedo) {
+                            Icon(Icons.AutoMirrored.Filled.Redo, "Redo")
+                        }
+                    }
+                }
             )
         },
         floatingActionButton = {

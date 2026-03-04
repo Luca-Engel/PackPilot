@@ -37,11 +37,15 @@ fun App(viewModel: PackingViewModel) {
                     CreateTripScreen(
                         viewModel = viewModel,
                         onTripCreated = { 
+                            viewModel.clearHistory()
                             navController.navigate(HomeRoute) {
                                 popUpTo(HomeRoute) { inclusive = true }
                             }
                         },
-                        onBack = { navController.popBackStack() }
+                        onBack = { 
+                            viewModel.clearHistory()
+                            navController.popBackStack() 
+                        }
                     )
                 }
                 composable<TripDetailsRoute> { backStackEntry ->
