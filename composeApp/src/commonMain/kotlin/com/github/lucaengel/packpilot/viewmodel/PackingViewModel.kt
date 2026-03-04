@@ -15,7 +15,6 @@ class PackingViewModel(private val repository: PackingRepository) {
     val trips = repository.trips
 
     fun createTrip(title: String, listId: String, startDate: LocalDate, endDate: LocalDate) {
-        // Use a unique ID based on timestamp and random bits to prevent overwriting
         val tripId = "trip_${Clock.System.now().toEpochMilliseconds()}_${Random.nextInt(1000)}"
         val activityTitle = lists.value[listId]?.title ?: ""
         val tempTrip = Trip(
@@ -68,10 +67,8 @@ class PackingViewModel(private val repository: PackingRepository) {
         
         val updatedItems = trip.items.map { item ->
             if (item.source == ItemSource.CUSTOM || item.originalItemId == null) {
-                // Keep custom items as they are
                 item
             } else {
-                // Recompute template-based items
                 val baseItem = itemsMap[item.originalItemId]
                 if (baseItem != null) {
                     val newQty = if (baseItem.isPerDay) baseItem.baseQuantity * newDays else baseItem.baseQuantity
@@ -101,7 +98,7 @@ class PackingViewModel(private val repository: PackingRepository) {
         repository.updateTrip(trip.copy(items = updatedItems))
     }
 
-    fun updateItemQuantity(tripId: String, tripItemId: String, newQuantity: Int) {
+    fun updateTripItemQuantity(tripId: String, tripItemId: String, newQuantity: Int) {
         if (newQuantity < 1) return
         val trip = trips.value[tripId] ?: return
         val updatedItems = trip.items.map {
@@ -171,13 +168,14 @@ class PackingViewModel(private val repository: PackingRepository) {
         repository.addList(generalList.copy(itemIds = generalList.itemIds + newItemId))
     }
 
-    fun updateGeneralItemQuantity(itemId: String, newQuantity: Int) {
+    // Unified functions for base template items (General or Activity-specific)
+    fun updateBaseItemQuantity(itemId: String, newQuantity: Int) {
         if (newQuantity < 1) return
         val item = items.value[itemId] ?: return
         repository.addItem(item.copy(baseQuantity = newQuantity))
     }
 
-    fun toggleGeneralItemPerDay(itemId: String) {
+    fun toggleBaseItemPerDay(itemId: String) {
         val item = items.value[itemId] ?: return
         repository.addItem(item.copy(isPerDay = !item.isPerDay))
     }
