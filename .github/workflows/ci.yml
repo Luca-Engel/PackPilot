@@ -23,9 +23,10 @@ jobs:
 
       - name: Run Tests and Coverage Verification
         id: test_step
-        # We run allTests first to generate coverage data, then koverVerify.
-        # We use 'tee' to save the output so we can parse the coverage percentage later.
+        # Capture all output but preserve exit status. 
+        # We wrap in subshell so we can capture the output even on failure.
         run: |
+          set -o pipefail
           ./gradlew :composeApp:allTests :composeApp:koverVerify 2>&1 | tee build_output.log
         continue-on-error: true
 
@@ -35,7 +36,6 @@ jobs:
           echo "### 📊 Test & Coverage Summary" >> $GITHUB_STEP_SUMMARY
           
           # Extract coverage values using grep and sed
-          # The log line looks like: "> Rule violated: lines covered percentage is 58.823500, but expected minimum is 75"
           LOG_LINE=$(grep "Rule violated: lines covered percentage is" build_output.log || true)
           
           if [ ! -z "$LOG_LINE" ]; then
@@ -47,20 +47,23 @@ jobs:
             echo "| **Actual Coverage** | ${ACTUAL}% |" >> $GITHUB_STEP_SUMMARY
             echo "| **Required Minimum** | ${REQUIRED}% |" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "❌ **Verification Failed:** Your code coverage is below the required threshold." >> $GITHUB_STEP_SUMMARY
+            
+            # If we found this line, it means Kover failed the verification
+            echo "❌ **Verification Failed:** Your code coverage (${ACTUAL}%) is below the required ${REQUIRED}% threshold." >> $GITHUB_STEP_SUMMARY
           else
             if [ "${{ steps.test_step.outcome }}" == "success" ]; then
               echo "✅ **Verification Passed:** All tests passed and coverage threshold met." >> $GITHUB_STEP_SUMMARY
             else
-              echo "❌ **Build Error:** The tests or build process failed. Check the logs for details." >> $GITHUB_STEP_SUMMARY
+              echo "❌ **Build Error:** The tests failed or there was a build error. See details in the 'Run Tests' step." >> $GITHUB_STEP_SUMMARY
             fi
           fi
 
-      - name: Finalize Build Status
-        # Since we used continue-on-error to capture the logs, 
-        # we must manually fail the job if the test step failed.
+      - name: Finalize Status
+        # Explicitly fail the job if the test_step was not successful
         if: steps.test_step.outcome != 'success'
-        run: exit 1
+        run: |
+          echo "Failing build due to test failure or low coverage."
+          exit 1
 
       - name: Upload Test Report
         if: always()
