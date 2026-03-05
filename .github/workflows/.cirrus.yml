@@ -5,7 +5,6 @@ container:
   kvm: true
 
 env:
-  # Replace with your Cirrus-encrypted Qlty token
   QLTY_COVERAGE_TOKEN: ENCRYPTED[daeef67a63af8388fde1e7094d908760cf60a1ef803b4876b4ce2d3be6bbebb7b7b19c34fc4277f92f175efdaf93923e]
 
 check_android_task:
@@ -33,9 +32,8 @@ check_android_task:
     -camera-back none
 
   assemble_instrumented_tests_script: |
-    echo MAPS_API_KEY=ENCRYPTED[!5c8a6c7336882072f610cf41c34611635ef523df0ec9b1fb02061838be400d2475b28700881e8d38f852b3e6f6d491bc!] >> local.properties
     chmod +x gradlew
-    ./gradlew assembleDebugAndroidTest
+    ./gradlew :androidApp:assembleDebugAndroidTest
 
   wait_for_avd_script:
     adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 3; done; input keyevent 82'
@@ -45,7 +43,6 @@ check_android_task:
     adb shell settings put global transition_animation_scale 0.0
     adb shell settings put global animator_duration_scale 0.0
 
-  # Install Qlty CLI
   prepare_qlty_script: |
     curl -fsSL https://qlty.sh | bash
     export PATH="$HOME/.qlty/bin:$PATH"
@@ -54,22 +51,17 @@ check_android_task:
   screen_record_background_script:
     for n in $(seq 1 20); do adb exec-out screenrecord --time-limit=180 --output-format=h264 - > $n.h264; done
 
-  # Run checks + connected tests + generate Kover XML (JaCoCo-compatible)
   check_script:
-    firebase emulators:exec --import emulator-export './gradlew check connectedCheck :composeApp:koverXmlReport'
+    # Run tests across both modules
+    ./gradlew :composeApp:allTests :composeApp:jacocoTestReport :androidApp:connectedCheck
 
-  # Upload Kover XML report to Qlty
   report_qlty_script: |
     export PATH="$HOME/.qlty/bin:$PATH"
-
-    # Debug: confirm the file exists in CI logs
-    ls -la app/build/reports/kover/xml || true
-
-    # Upload (Qlty reads QLTY_COVERAGE_TOKEN automatically)
-    qlty coverage publish app/build/reports/kover/xml/report.xml
+    # Upload the JaCoCo report we just generated
+    qlty coverage publish composeApp/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
 
   lint_script:
-    ./gradlew lintDebug
+    ./gradlew :androidApp:lintDebug
 
   always:
     wait_for_screenrecord_script: |
@@ -80,13 +72,13 @@ check_android_task:
       path: "*.h264"
 
     android_lint_artifacts:
-      path: ./app/build/reports/lint-results-debug.xml
+      path: ./androidApp/build/reports/lint-results-debug.xml
       format: android-lint
 
     test_artifacts:
-      path: "./app/build/test-results/**/*.xml"
+      path: "**/build/test-results/**/*.xml"
       format: junit
 
     androidtest_artifacts:
-      path: "./app/build/outputs/**/*.xml"
+      path: "**/build/outputs/**/*.xml"
       format: junit
