@@ -54,17 +54,30 @@ check_android_task:
     done
 
   check_script: |
-    # Run tests across both modules
+    # Run tests and generate coverage
     ./gradlew :composeApp:allTests :composeApp:jacocoTestReport :androidApp:connectedCheck
 
   report_qlty_script: |
     export PATH="$HOME/.qlty/bin:$PATH"
 
-    # Fix: Cirrus doesn't expose commit metadata in a way qlty auto-detects in PR builds,
-    # so we pass it explicitly.
-    qlty coverage publish \
-      --override-commit-sha "$CIRRUS_CHANGE_IN_REPO" \
-      composeApp/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
+    echo "CIRRUS_CHANGE_IN_REPO=$CIRRUS_CHANGE_IN_REPO"
+    echo "CIRRUS_PR=$CIRRUS_PR"
+    echo "CIRRUS_BRANCH=$CIRRUS_BRANCH"
+    echo "CIRRUS_BASE_BRANCH=$CIRRUS_BASE_BRANCH"
+
+    # Attach coverage to PR when running in a PR build
+    if [ -n "$CIRRUS_PR" ]; then
+      qlty coverage publish \
+        --override-commit-sha "$CIRRUS_CHANGE_IN_REPO" \
+        --override-pr-number "$CIRRUS_PR" \
+        composeApp/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
+    else
+      # Otherwise attach to the branch
+      qlty coverage publish \
+        --override-commit-sha "$CIRRUS_CHANGE_IN_REPO" \
+        --override-branch "${CIRRUS_BRANCH:-$CIRRUS_BASE_BRANCH}" \
+        composeApp/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
+    fi
 
   lint_script: |
     ./gradlew :androidApp:lintDebug
