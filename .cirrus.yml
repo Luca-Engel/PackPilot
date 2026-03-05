@@ -60,19 +60,24 @@ check_android_task:
   report_qlty_script: |
     export PATH="$HOME/.qlty/bin:$PATH"
 
+    # Fix JaCoCo path resolution: JaCoCo reports package-relative paths like
+    # com/github/.../App.kt, but your sources live under these roots.
+    # Remove any entries that don't exist in your repo.
+    export JACOCO_SOURCE_PATH="composeApp/src/commonMain/kotlin composeApp/src/androidMain/kotlin composeApp/src/jvmMain/kotlin"
+
     echo "CIRRUS_CHANGE_IN_REPO=$CIRRUS_CHANGE_IN_REPO"
     echo "CIRRUS_PR=$CIRRUS_PR"
     echo "CIRRUS_BRANCH=$CIRRUS_BRANCH"
     echo "CIRRUS_BASE_BRANCH=$CIRRUS_BASE_BRANCH"
+    echo "JACOCO_SOURCE_PATH=$JACOCO_SOURCE_PATH"
 
-    # Attach coverage to PR when running in a PR build
+    # Attach coverage to PR when running in a PR build; otherwise attach to the branch.
     if [ -n "$CIRRUS_PR" ]; then
       qlty coverage publish \
         --override-commit-sha "$CIRRUS_CHANGE_IN_REPO" \
         --override-pr-number "$CIRRUS_PR" \
         composeApp/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
     else
-      # Otherwise attach to the branch
       qlty coverage publish \
         --override-commit-sha "$CIRRUS_CHANGE_IN_REPO" \
         --override-branch "${CIRRUS_BRANCH:-$CIRRUS_BASE_BRANCH}" \
