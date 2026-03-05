@@ -59,6 +59,20 @@ extensions.configure<com.android.build.api.dsl.LibraryExtension> {
     defaultConfig {
         minSdk = 23
     }
+    
+    buildTypes {
+        getByName("debug") {
+            enableAndroidTestCoverage = true
+            enableUnitTestCoverage = true
+        }
+    }
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
@@ -98,7 +112,10 @@ tasks.withType<Test> {
 }
 
 tasks.register<JacocoReport>("jacocoTestReport") {
-    dependsOn("testDebugUnitTest", "createDebugCoverageReport")
+    // If you don't have instrumentation tests in composeApp yet, 
+    // you might want to remove "createDebugCoverageReport" until you add them.
+    dependsOn("testDebugUnitTest")
+
     reports {
         xml.required.set(true)
         html.required.set(true)
