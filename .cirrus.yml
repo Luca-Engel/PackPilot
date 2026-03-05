@@ -1,11 +1,10 @@
 container:
-  image: cirrusci/android-sdk:34
+  image: cirrusci/android-sdk:30
   cpu: 4
   memory: 16G
   kvm: true
 
 env:
-  JAVA_HOME: /usr/lib/jvm/java-21-openjdk-amd64
   QLTY_COVERAGE_TOKEN: ENCRYPTED[daeef67a63af8388fde1e7094d908760cf60a1ef803b4876b4ce2d3be6bbebb7b7b19c34fc4277f92f175efdaf93923e]
 
 check_android_task:
@@ -15,12 +14,12 @@ check_android_task:
     curl -sL https://firebase.tools | bash
 
   install_emulator_script:
-    sdkmanager --install "system-images;android-34;google_apis_playstore;x86_64"
+    sdkmanager --install "system-images;android-30;google_apis_playstore;x86"
 
   create_avd_script:
     echo no | avdmanager create avd --force
     --name emulator
-    --package "system-images;android-34;google_apis_playstore;x86_64"
+    --package "system-images;android-30;google_apis_playstore;x86"
 
   start_avd_background_script:
     $ANDROID_HOME/emulator/emulator
