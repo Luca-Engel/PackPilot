@@ -69,21 +69,20 @@ check_android_task:
     echo "CIRRUS_BASE_BRANCH=$CIRRUS_BASE_BRANCH"
     echo "JACOCO_SOURCE_PATH=$JACOCO_SOURCE_PATH"
 
-    # Kotlin/JVM + JaCoCo (especially in KMP) can include synthetic/non-physical filenames
-    # in the XML (e.g. *.common.kt), so relax file-presence validation.
+    # Relax file validation because KMP/JaCoCo can report synthetic filenames (e.g. *.common.kt)
     FILE_PRESENCE_THRESHOLD="20"
 
     if [ -n "$CIRRUS_PR" ]; then
       qlty coverage publish \
         --override-commit-sha "$CIRRUS_CHANGE_IN_REPO" \
         --override-pr-number "$CIRRUS_PR" \
-        --validate-file-presence-threshold "$FILE_PRESENCE_THRESHOLD" \
+        --validate-file-threshold "$FILE_PRESENCE_THRESHOLD" \
         composeApp/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
     else
       qlty coverage publish \
         --override-commit-sha "$CIRRUS_CHANGE_IN_REPO" \
         --override-branch "${CIRRUS_BRANCH:-$CIRRUS_BASE_BRANCH}" \
-        --validate-file-presence-threshold "$FILE_PRESENCE_THRESHOLD" \
+        --validate-file-threshold "$FILE_PRESENCE_THRESHOLD" \
         composeApp/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
     fi
 
