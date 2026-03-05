@@ -60,26 +60,34 @@ check_android_task:
   report_qlty_script: |
     export PATH="$HOME/.qlty/bin:$PATH"
 
-    # JaCoCo reports package-relative paths, so provide source roots.
     export JACOCO_SOURCE_PATH="composeApp/src/commonMain/kotlin composeApp/src/androidMain/kotlin composeApp/src/jvmMain/kotlin"
 
     echo "CIRRUS_CHANGE_IN_REPO=$CIRRUS_CHANGE_IN_REPO"
     echo "CIRRUS_PR=$CIRRUS_PR"
     echo "CIRRUS_BRANCH=$CIRRUS_BRANCH"
     echo "CIRRUS_BASE_BRANCH=$CIRRUS_BASE_BRANCH"
+    echo "CIRRUS_TASK_ID=$CIRRUS_TASK_ID"
+    echo "CIRRUS_BUILD_ID=$CIRRUS_BUILD_ID"
     echo "JACOCO_SOURCE_PATH=$JACOCO_SOURCE_PATH"
 
-    # Relax file validation because KMP/JaCoCo can report synthetic filenames (e.g. *.common.kt)
     FILE_PRESENCE_THRESHOLD="20"
+    BUILD_ID="${CIRRUS_TASK_ID:-$CIRRUS_BUILD_ID}"
+
+    if [ -z "$BUILD_ID" ]; then
+      echo "ERROR: No CIRRUS_TASK_ID or CIRRUS_BUILD_ID available; cannot set Qlty build id."
+      exit 1
+    fi
 
     if [ -n "$CIRRUS_PR" ]; then
       qlty coverage publish \
+        --override-build-id "$BUILD_ID" \
         --override-commit-sha "$CIRRUS_CHANGE_IN_REPO" \
         --override-pr-number "$CIRRUS_PR" \
         --validate-file-threshold "$FILE_PRESENCE_THRESHOLD" \
         composeApp/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
     else
       qlty coverage publish \
+        --override-build-id "$BUILD_ID" \
         --override-commit-sha "$CIRRUS_CHANGE_IN_REPO" \
         --override-branch "${CIRRUS_BRANCH:-$CIRRUS_BASE_BRANCH}" \
         --validate-file-threshold "$FILE_PRESENCE_THRESHOLD" \
