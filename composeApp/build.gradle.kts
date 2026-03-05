@@ -1,3 +1,6 @@
+import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
+import org.gradle.testing.jacoco.tasks.JacocoReport
+
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.library)
@@ -5,6 +8,7 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlinx.serialization)
     id("org.jetbrains.kotlinx.kover")
+    jacoco
 }
 
 kotlin {
@@ -84,4 +88,64 @@ kover {
             }
         }
     }
+}
+
+tasks.withType<Test> {
+    configure<JacocoTaskExtension> {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
+    }
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testDebugUnitTest", "createDebugCoverageReport")
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+
+    val fileFilter = listOf(
+        "**/R.class",
+        "**/R$*.class",
+        "**/BuildConfig.*",
+        "**/Manifest*.*",
+        "**/*Test*.*",
+        "android/**/*.*"
+    )
+    
+    val debugTree = fileTree("${layout.buildDirectory.get()}/intermediates/javac/debug/classes") {
+        exclude(fileFilter)
+    }
+    // KMP Kotlin classes are stored in a different location
+    val kotlinTree = fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
+        exclude(fileFilter)
+    }
+
+    sourceDirectories.setFrom(files(
+        "${project.projectDir}/src/commonMain/kotlin",
+        "${project.projectDir}/src/androidMain/kotlin"
+    ))
+    classDirectories.setFrom(files(debugTree, kotlinTree))
+    executionData.setFrom(fileTree(layout.buildDirectory) {
+        include(
+            "outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec",
+            "outputs/code_coverage/debugAndroidTest/connected/*/coverage.ec"
+        )
+    })
+}
+
+tasks.register<Copy>("copyEmmaReport") {
+    from(layout.buildDirectory.dir("outputs/code_coverage/debugAndroidTest/connected/Pixel_2_API_33(AVD) - 13/"))
+    include("coverage.ec")
+    into(layout.buildDirectory.dir("outputs/code_coverage/debugAndroidTest/connected/"))
+    rename { it.replace(".ec", ".exec") }
+}
+
+tasks.named("connectedCheck") {
+    finalizedBy("jacocoTestReport")
+}
+
+tasks.register("ideaCoverage") {
+    dependsOn("connectedCheck")
+    finalizedBy("copyEmmaReport")
 }
