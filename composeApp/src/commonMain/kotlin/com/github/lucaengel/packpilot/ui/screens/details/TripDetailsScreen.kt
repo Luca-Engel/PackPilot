@@ -1,6 +1,16 @@
 package com.github.lucaengel.packpilot.ui.screens.details
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,9 +23,30 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.EditCalendar
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDateRangePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -31,7 +62,11 @@ import kotlinx.datetime.toLocalDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TripDetailsScreen(viewModel: PackingViewModel, tripId: String, onBack: () -> Unit) {
+fun TripDetailsScreen(
+    viewModel: PackingViewModel,
+    tripId: String,
+    onBack: () -> Unit,
+) {
     // Clear history when leaving screen (handles system back button)
     DisposableEffect(Unit) {
         onDispose {
@@ -41,23 +76,24 @@ fun TripDetailsScreen(viewModel: PackingViewModel, tripId: String, onBack: () ->
 
     val trips by viewModel.trips.collectAsState()
     val trip = trips[tripId] ?: return
-    
+
     val canUndo by viewModel.canUndo.collectAsState()
     val canRedo by viewModel.canRedo.collectAsState()
 
     val essentialItems = trip.items.filter { it.source == ItemSource.ESSENTIAL }
     val activityItems = trip.items.filter { it.source == ItemSource.ACTIVITY }
     val customItems = trip.items.filter { it.source == ItemSource.CUSTOM }
-    
+
     var isEditMode by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showAddCustomDialog by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
 
-    val dateRangePickerState = rememberDateRangePickerState(
-        initialSelectedStartDateMillis = trip.startDate.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds(),
-        initialSelectedEndDateMillis = trip.endDate.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
-    )
+    val dateRangePickerState =
+        rememberDateRangePickerState(
+            initialSelectedStartDateMillis = trip.startDate.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds(),
+            initialSelectedEndDateMillis = trip.endDate.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds(),
+        )
 
     Scaffold(
         topBar = {
@@ -65,10 +101,14 @@ fun TripDetailsScreen(viewModel: PackingViewModel, tripId: String, onBack: () ->
                 title = {
                     Column {
                         Text(trip.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        Text(trip.activityTitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                        Text(
+                            trip.activityTitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
                     }
                 },
-                navigationIcon = { 
+                navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
                 },
                 actions = {
@@ -79,9 +119,9 @@ fun TripDetailsScreen(viewModel: PackingViewModel, tripId: String, onBack: () ->
                         IconButton(onClick = { viewModel.redo() }, enabled = canRedo) {
                             Icon(Icons.AutoMirrored.Filled.Redo, "Redo")
                         }
-                        IconButton(onClick = { 
+                        IconButton(onClick = {
                             viewModel.clearHistory()
-                            isEditMode = false 
+                            isEditMode = false
                         }) {
                             Icon(Icons.Default.Check, "Save", tint = MaterialTheme.colorScheme.primary)
                         }
@@ -96,7 +136,7 @@ fun TripDetailsScreen(viewModel: PackingViewModel, tripId: String, onBack: () ->
                     IconButton(onClick = { showDeleteDialog = true }) {
                         Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error)
                     }
-                }
+                },
             )
         },
         bottomBar = {
@@ -105,7 +145,7 @@ fun TripDetailsScreen(viewModel: PackingViewModel, tripId: String, onBack: () ->
                     Button(
                         onClick = { showAddCustomDialog = true },
                         modifier = Modifier.padding(16.dp).fillMaxWidth().height(56.dp),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(16.dp),
                     ) {
                         Icon(Icons.Default.Add, null)
                         Spacer(Modifier.width(8.dp))
@@ -113,26 +153,31 @@ fun TripDetailsScreen(viewModel: PackingViewModel, tripId: String, onBack: () ->
                     }
                 }
             }
-        }
+        },
     ) { padding ->
         LazyColumn(
             modifier = Modifier.padding(padding).fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.DateRange, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(16.dp))
+                        Icon(
+                            Icons.Default.DateRange,
+                            null,
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.size(16.dp),
+                        )
                         Spacer(Modifier.width(8.dp))
                         Text(
                             text = "${trip.startDate} to ${trip.endDate} (${trip.days} days)",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.secondary
+                            color = MaterialTheme.colorScheme.secondary,
                         )
                     }
                 }
@@ -160,11 +205,23 @@ fun TripDetailsScreen(viewModel: PackingViewModel, tripId: String, onBack: () ->
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
-            confirmButton = { 
+            confirmButton = {
                 TextButton(onClick = {
-                    if (dateRangePickerState.selectedStartDateMillis != null && dateRangePickerState.selectedEndDateMillis != null) {
-                        val start = Instant.fromEpochMilliseconds(dateRangePickerState.selectedStartDateMillis!!).toLocalDateTime(TimeZone.UTC).date
-                        val end = Instant.fromEpochMilliseconds(dateRangePickerState.selectedEndDateMillis!!).toLocalDateTime(TimeZone.UTC).date
+                    if (dateRangePickerState.selectedStartDateMillis != null &&
+                        dateRangePickerState.selectedEndDateMillis != null
+                    ) {
+                        val start =
+                            Instant
+                                .fromEpochMilliseconds(
+                                    dateRangePickerState.selectedStartDateMillis!!,
+                                ).toLocalDateTime(TimeZone.UTC)
+                                .date
+                        val end =
+                            Instant
+                                .fromEpochMilliseconds(
+                                    dateRangePickerState.selectedEndDateMillis!!,
+                                ).toLocalDateTime(TimeZone.UTC)
+                                .date
                         viewModel.updateTripDates(tripId, start, end)
                     }
                     showDatePicker = false
@@ -172,7 +229,7 @@ fun TripDetailsScreen(viewModel: PackingViewModel, tripId: String, onBack: () ->
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
-            }
+            },
         ) {
             DateRangePicker(state = dateRangePickerState, modifier = Modifier.weight(1f))
         }
@@ -187,7 +244,14 @@ fun TripDetailsScreen(viewModel: PackingViewModel, tripId: String, onBack: () ->
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextField(value = name, onValueChange = { name = it }, label = { Text("Item Name") })
-                    TextField(value = qty, onValueChange = { if (it.all { c -> c.isDigit() }) qty = it }, label = { Text("Quantity") })
+                    TextField(value = qty, onValueChange = {
+                        if (it.all { c ->
+                                c.isDigit()
+                            }
+                        ) {
+                            qty = it
+                        }
+                    }, label = { Text("Quantity") })
                 }
             },
             confirmButton = {
@@ -198,7 +262,7 @@ fun TripDetailsScreen(viewModel: PackingViewModel, tripId: String, onBack: () ->
                     }
                 }) { Text("Add") }
             },
-            dismissButton = { TextButton(onClick = { showAddCustomDialog = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { showAddCustomDialog = false }) { Text("Cancel") } },
         )
     }
 
@@ -217,7 +281,7 @@ fun TripDetailsScreen(viewModel: PackingViewModel, tripId: String, onBack: () ->
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
-            }
+            },
         )
     }
 }

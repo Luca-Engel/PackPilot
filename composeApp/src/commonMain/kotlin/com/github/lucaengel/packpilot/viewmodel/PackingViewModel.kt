@@ -12,10 +12,12 @@ import kotlin.random.Random
 data class AppState(
     val items: Map<String, PackingItem>,
     val lists: Map<String, PackingList>,
-    val trips: Map<String, Trip>
+    val trips: Map<String, Trip>,
 )
 
-class PackingViewModel(private val repository: PackingRepository) {
+class PackingViewModel(
+    private val repository: PackingRepository,
+) {
     val items = repository.items
     val lists = repository.lists
     val trips = repository.trips
@@ -46,10 +48,10 @@ class PackingViewModel(private val repository: PackingRepository) {
 
     fun undo() {
         if (undoStack.isEmpty()) return
-        
+
         // Save current to redo before reverting
         redoStack.add(AppState(items.value, lists.value, trips.value))
-        
+
         val previousState = undoStack.removeAt(undoStack.size - 1)
         applyState(previousState)
         updateHistoryFlags()
@@ -57,10 +59,10 @@ class PackingViewModel(private val repository: PackingRepository) {
 
     fun redo() {
         if (redoStack.isEmpty()) return
-        
+
         // Save current to undo before reapplying
         undoStack.add(AppState(items.value, lists.value, trips.value))
-        
+
         val nextState = redoStack.removeAt(redoStack.size - 1)
         applyState(nextState)
         updateHistoryFlags()
@@ -75,18 +77,24 @@ class PackingViewModel(private val repository: PackingRepository) {
         _canRedo.value = redoStack.isNotEmpty()
     }
 
-    fun createTrip(title: String, listId: String, startDate: LocalDate, endDate: LocalDate) {
+    fun createTrip(
+        title: String,
+        listId: String,
+        startDate: LocalDate,
+        endDate: LocalDate,
+    ) {
         recordHistory()
         val tripId = "trip_${Clock.System.now().toEpochMilliseconds()}_${Random.nextInt(1000)}"
         val activityTitle = lists.value[listId]?.title ?: ""
-        val tempTrip = Trip(
-            id = tripId,
-            title = title,
-            startDate = startDate,
-            endDate = endDate,
-            activityTitle = activityTitle,
-            baseListId = listId
-        )
+        val tempTrip =
+            Trip(
+                id = tripId,
+                title = title,
+                startDate = startDate,
+                endDate = endDate,
+                activityTitle = activityTitle,
+                baseListId = listId,
+            )
         val days = tempTrip.days
 
         val listItems = repository.getItemsForList(listId)
@@ -96,49 +104,58 @@ class PackingViewModel(private val repository: PackingRepository) {
 
         generalItems.forEach { item ->
             val qty = if (item.isPerDay) item.baseQuantity * days else item.baseQuantity
-            tripItems.add(TripItem(
-                id = "${item.id}_${Random.nextInt()}",
-                name = item.name,
-                quantity = qty,
-                originalItemId = item.id,
-                source = ItemSource.ESSENTIAL
-            ))
+            tripItems.add(
+                TripItem(
+                    id = "${item.id}_${Random.nextInt()}",
+                    name = item.name,
+                    quantity = qty,
+                    originalItemId = item.id,
+                    source = ItemSource.ESSENTIAL,
+                ),
+            )
         }
 
         listItems.forEach { item ->
             val qty = if (item.isPerDay) item.baseQuantity * days else item.baseQuantity
-            tripItems.add(TripItem(
-                id = "${item.id}_${Random.nextInt()}",
-                name = item.name,
-                quantity = qty,
-                originalItemId = item.id,
-                source = ItemSource.ACTIVITY
-            ))
+            tripItems.add(
+                TripItem(
+                    id = "${item.id}_${Random.nextInt()}",
+                    name = item.name,
+                    quantity = qty,
+                    originalItemId = item.id,
+                    source = ItemSource.ACTIVITY,
+                ),
+            )
         }
 
         repository.addTrip(tempTrip.copy(items = tripItems))
     }
 
-    fun updateTripDates(tripId: String, startDate: LocalDate, endDate: LocalDate) {
+    fun updateTripDates(
+        tripId: String,
+        startDate: LocalDate,
+        endDate: LocalDate,
+    ) {
         recordHistory()
         val trip = trips.value[tripId] ?: return
         val newDays = (endDate.toEpochDays() - startDate.toEpochDays() + 1).coerceAtLeast(1)
-        
+
         val itemsMap = items.value
-        val updatedItems = trip.items.map { item ->
-            if (item.source == ItemSource.CUSTOM || item.originalItemId == null) {
-                item
-            } else {
-                val baseItem = itemsMap[item.originalItemId]
-                if (baseItem != null) {
-                    val newQty = if (baseItem.isPerDay) baseItem.baseQuantity * newDays else baseItem.baseQuantity
-                    item.copy(quantity = newQty)
-                } else {
+        val updatedItems =
+            trip.items.map { item ->
+                if (item.source == ItemSource.CUSTOM || item.originalItemId == null) {
                     item
+                } else {
+                    val baseItem = itemsMap[item.originalItemId]
+                    if (baseItem != null) {
+                        val newQty = if (baseItem.isPerDay) baseItem.baseQuantity * newDays else baseItem.baseQuantity
+                        item.copy(quantity = newQty)
+                    } else {
+                        item
+                    }
                 }
             }
-        }
-        
+
         repository.updateTrip(trip.copy(startDate = startDate, endDate = endDate, items = updatedItems))
     }
 
@@ -147,90 +164,125 @@ class PackingViewModel(private val repository: PackingRepository) {
         repository.deleteTrip(tripId)
     }
 
-    fun togglePacked(tripId: String, tripItemId: String) {
+    fun togglePacked(
+        tripId: String,
+        tripItemId: String,
+    ) {
         val trip = trips.value[tripId] ?: return
-        val updatedItems = trip.items.map {
-            if (it.id == tripItemId) it.copy(isPacked = !it.isPacked) else it
-        }
+        val updatedItems =
+            trip.items.map {
+                if (it.id == tripItemId) it.copy(isPacked = !it.isPacked) else it
+            }
         repository.updateTrip(trip.copy(items = updatedItems))
     }
 
-    fun updateTripItemQuantity(tripId: String, tripItemId: String, newQuantity: Int) {
+    fun updateTripItemQuantity(
+        tripId: String,
+        tripItemId: String,
+        newQuantity: Int,
+    ) {
         if (newQuantity < 1) return
         recordHistory()
         val trip = trips.value[tripId] ?: return
-        val updatedItems = trip.items.map {
-            if (it.id == tripItemId) it.copy(quantity = newQuantity) else it
-        }
+        val updatedItems =
+            trip.items.map {
+                if (it.id == tripItemId) it.copy(quantity = newQuantity) else it
+            }
         repository.updateTrip(trip.copy(items = updatedItems))
     }
 
-    fun removeTripItem(tripId: String, tripItemId: String) {
+    fun removeTripItem(
+        tripId: String,
+        tripItemId: String,
+    ) {
         recordHistory()
         val trip = trips.value[tripId] ?: return
         val updatedItems = trip.items.filter { it.id != tripItemId }
         repository.updateTrip(trip.copy(items = updatedItems))
     }
 
-    fun addCustomItemToTrip(tripId: String, name: String, quantity: Int) {
+    fun addCustomItemToTrip(
+        tripId: String,
+        name: String,
+        quantity: Int,
+    ) {
         recordHistory()
         val trip = trips.value[tripId] ?: return
-        val newItem = TripItem(
-            id = "custom_${Random.nextInt()}",
-            name = name,
-            quantity = quantity,
-            source = ItemSource.CUSTOM
-        )
+        val newItem =
+            TripItem(
+                id = "custom_${Random.nextInt()}",
+                name = name,
+                quantity = quantity,
+                source = ItemSource.CUSTOM,
+            )
         repository.updateTrip(trip.copy(items = trip.items + newItem))
     }
 
     fun createNewTripType(title: String) {
         recordHistory()
-        val newList = PackingList(
-            id = "list_${Random.nextInt()}",
-            title = title,
-            itemIds = emptyList()
-        )
+        val newList =
+            PackingList(
+                id = "list_${Random.nextInt()}",
+                title = title,
+                itemIds = emptyList(),
+            )
         repository.addList(newList)
     }
 
-    fun addItemToTripType(listId: String, name: String, baseQuantity: Int, isPerDay: Boolean) {
+    fun addItemToTripType(
+        listId: String,
+        name: String,
+        baseQuantity: Int,
+        isPerDay: Boolean,
+    ) {
         recordHistory()
         val newItemId = "item_${Random.nextInt()}"
-        val newItem = PackingItem(
-            id = newItemId,
-            name = name,
-            baseQuantity = baseQuantity,
-            isPerDay = isPerDay
-        )
+        val newItem =
+            PackingItem(
+                id = newItemId,
+                name = name,
+                baseQuantity = baseQuantity,
+                isPerDay = isPerDay,
+            )
         repository.addItem(newItem)
-        
+
         val list = lists.value[listId] ?: return
         repository.addList(list.copy(itemIds = list.itemIds + newItemId))
     }
 
-    fun removeItemFromTripType(listId: String, itemId: String) {
+    fun removeItemFromTripType(
+        listId: String,
+        itemId: String,
+    ) {
         recordHistory()
         val list = lists.value[listId] ?: return
         repository.addList(list.copy(itemIds = list.itemIds - itemId))
     }
 
-    fun addGeneralItem(name: String, baseQuantity: Int, isPerDay: Boolean) {
+    fun addGeneralItem(
+        name: String,
+        baseQuantity: Int,
+        isPerDay: Boolean,
+    ) {
         recordHistory()
         val newItemId = "item_${Random.nextInt()}"
-        val newItem = PackingItem(
-            id = newItemId,
-            name = name,
-            baseQuantity = baseQuantity,
-            isPerDay = isPerDay
-        )
+        val newItem =
+            PackingItem(
+                id = newItemId,
+                name = name,
+                baseQuantity = baseQuantity,
+                isPerDay = isPerDay,
+            )
         repository.addItem(newItem)
-        
+
         val generalList = lists.value.values.find { it.isGeneral } ?: return
         repository.addList(generalList.copy(itemIds = generalList.itemIds + newItemId))
     }
 
-    fun updateBaseItemQuantity(itemId: String, newQuantity: Int) {
+    fun updateBaseItemQuantity(
+        itemId: String,
+        newQuantity: Int,
+    ) {
         if (newQuantity < 1) return
         recordHistory()
         val item = items.value[itemId] ?: return
@@ -249,25 +301,29 @@ class PackingViewModel(private val repository: PackingRepository) {
         repository.addList(generalList.copy(itemIds = generalList.itemIds - itemId))
     }
 
-    fun getPlannedTrips(): Flow<List<Trip>> = trips.map { tripMap ->
-        val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
-        tripMap.values.filter { it.endDate >= today }.sortedBy { it.startDate }
-    }
+    fun getPlannedTrips(): Flow<List<Trip>> =
+        trips.map { tripMap ->
+            val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+            tripMap.values.filter { it.endDate >= today }.sortedBy { it.startDate }
+        }
 
-    fun getPastTrips(): Flow<List<Trip>> = trips.map { tripMap ->
-        val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
-        tripMap.values.filter { it.endDate < today }.sortedByDescending { it.startDate }
-    }
+    fun getPastTrips(): Flow<List<Trip>> =
+        trips.map { tripMap ->
+            val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+            tripMap.values.filter { it.endDate < today }.sortedByDescending { it.startDate }
+        }
 
     fun getLists() = lists.value.values.toList()
-    
-    fun observeGeneralItems(): Flow<List<PackingItem>> = combine(lists, items) { listsMap, itemsMap ->
-        val generalList = listsMap.values.find { it.isGeneral } ?: return@combine emptyList<PackingItem>()
-        generalList.itemIds.mapNotNull { itemsMap[it] }
-    }
 
-    fun observeItemsForList(listId: String): Flow<List<PackingItem>> = combine(lists, items) { listsMap, itemsMap ->
-        val list = listsMap[listId] ?: return@combine emptyList<PackingItem>()
-        list.itemIds.mapNotNull { itemsMap[it] }
-    }
+    fun observeGeneralItems(): Flow<List<PackingItem>> =
+        combine(lists, items) { listsMap, itemsMap ->
+            val generalList = listsMap.values.find { it.isGeneral } ?: return@combine emptyList<PackingItem>()
+            generalList.itemIds.mapNotNull { itemsMap[it] }
+        }
+
+    fun observeItemsForList(listId: String): Flow<List<PackingItem>> =
+        combine(lists, items) { listsMap, itemsMap ->
+            val list = listsMap[listId] ?: return@combine emptyList<PackingItem>()
+            list.itemIds.mapNotNull { itemsMap[it] }
+        }
 }

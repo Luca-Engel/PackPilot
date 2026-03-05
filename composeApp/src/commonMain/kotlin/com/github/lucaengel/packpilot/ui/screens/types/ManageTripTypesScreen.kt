@@ -27,7 +27,10 @@ import com.github.lucaengel.packpilot.viewmodel.PackingViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ManageTripTypesScreen(viewModel: PackingViewModel, onBack: () -> Unit) {
+fun ManageTripTypesScreen(
+    viewModel: PackingViewModel,
+    onBack: () -> Unit,
+) {
     // Best Practice: Clear history when leaving the screen via any method (system back or button)
     DisposableEffect(Unit) {
         onDispose {
@@ -40,7 +43,7 @@ fun ManageTripTypesScreen(viewModel: PackingViewModel, onBack: () -> Unit) {
     var selectedTypeId by remember { mutableStateOf<String?>(null) }
     var showAddTypeDialog by remember { mutableStateOf(false) }
     var isSidebarVisible by remember { mutableStateOf(true) }
-    
+
     val canUndo by viewModel.canUndo.collectAsState()
     val canRedo by viewModel.canRedo.collectAsState()
 
@@ -59,35 +62,54 @@ fun ManageTripTypesScreen(viewModel: PackingViewModel, onBack: () -> Unit) {
                         }
                     }
                     IconButton(onClick = { isSidebarVisible = !isSidebarVisible }) {
-                        Icon(if (isSidebarVisible) Icons.AutoMirrored.Filled.MenuOpen else Icons.Default.Menu, contentDescription = "Toggle Sidebar")
+                        Icon(
+                            if (isSidebarVisible) Icons.AutoMirrored.Filled.MenuOpen else Icons.Default.Menu,
+                            contentDescription = "Toggle Sidebar",
+                        )
                     }
-                }
+                },
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddTypeDialog = true }) {
                 Icon(Icons.Default.Add, contentDescription = "New Type")
             }
-        }
+        },
     ) { padding ->
         Row(modifier = Modifier.padding(padding).fillMaxSize()) {
             AnimatedVisibility(
                 visible = isSidebarVisible,
                 enter = slideInHorizontally(animationSpec = tween(300)) { -it },
-                exit = slideOutHorizontally(animationSpec = tween(300)) { -it }
+                exit = slideOutHorizontally(animationSpec = tween(300)) { -it },
             ) {
                 LazyColumn(
-                    modifier = Modifier.width(160.dp).fillMaxHeight().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                    modifier =
+                        Modifier
+                            .width(
+                                160.dp,
+                            ).fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
                     contentPadding = PaddingValues(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(activityTypes) { type ->
                         Card(
                             onClick = { selectedTypeId = type.id },
-                            colors = if (selectedTypeId == type.id) CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer) else CardDefaults.cardColors(),
-                            shape = RoundedCornerShape(12.dp)
+                            colors =
+                                if (selectedTypeId ==
+                                    type.id
+                                ) {
+                                    CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                                } else {
+                                    CardDefaults.cardColors()
+                                },
+                            shape = RoundedCornerShape(12.dp),
                         ) {
-                            Text(type.title, modifier = Modifier.padding(12.dp).fillMaxWidth(), style = MaterialTheme.typography.labelMedium)
+                            Text(
+                                type.title,
+                                modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                style = MaterialTheme.typography.labelMedium,
+                            )
                         }
                     }
                 }
@@ -99,15 +121,27 @@ fun ManageTripTypesScreen(viewModel: PackingViewModel, onBack: () -> Unit) {
                     val items by viewModel.observeItemsForList(selectedTypeId!!).collectAsState(emptyList())
                     var showAddItemDialog by remember { mutableStateOf(false) }
 
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                        Text(type.title, style = MaterialTheme.typography.headlineSmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            type.title,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                        )
                         IconButton(onClick = { showAddItemDialog = true }) {
                             Icon(Icons.Default.AddCircle, null, tint = MaterialTheme.colorScheme.primary)
                         }
                     }
-                    
-                    Text("Template items for this trip type:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
-                    
+
+                    Text(
+                        "Template items for this trip type:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+
                     Spacer(Modifier.height(12.dp))
 
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -116,7 +150,7 @@ fun ManageTripTypesScreen(viewModel: PackingViewModel, onBack: () -> Unit) {
                                 item = item,
                                 onUpdateQuantity = { viewModel.updateBaseItemQuantity(item.id, it) },
                                 onTogglePerDay = { viewModel.toggleBaseItemPerDay(item.id) },
-                                onDelete = { viewModel.removeItemFromTripType(selectedTypeId!!, item.id) }
+                                onDelete = { viewModel.removeItemFromTripType(selectedTypeId!!, item.id) },
                             )
                         }
                     }
@@ -131,7 +165,14 @@ fun ManageTripTypesScreen(viewModel: PackingViewModel, onBack: () -> Unit) {
                             text = {
                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     TextField(value = name, onValueChange = { name = it }, label = { Text("Item Name") })
-                                    TextField(value = qty, onValueChange = { if (it.all { c -> c.isDigit() }) qty = it }, label = { Text("Quantity") })
+                                    TextField(value = qty, onValueChange = {
+                                        if (it.all { c ->
+                                                c.isDigit()
+                                            }
+                                        ) {
+                                            qty = it
+                                        }
+                                    }, label = { Text("Quantity") })
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Checkbox(checked = isPerDay, onCheckedChange = { isPerDay = it })
                                         Text("Per Day")
@@ -146,7 +187,7 @@ fun ManageTripTypesScreen(viewModel: PackingViewModel, onBack: () -> Unit) {
                                     }
                                 }) { Text("Add") }
                             },
-                            dismissButton = { TextButton(onClick = { showAddItemDialog = false }) { Text("Cancel") } }
+                            dismissButton = { TextButton(onClick = { showAddItemDialog = false }) { Text("Cancel") } },
                         )
                     }
                 } else {
@@ -172,7 +213,7 @@ fun ManageTripTypesScreen(viewModel: PackingViewModel, onBack: () -> Unit) {
                     }
                 }) { Text("Create") }
             },
-            dismissButton = { TextButton(onClick = { showAddTypeDialog = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { showAddTypeDialog = false }) { Text("Cancel") } },
         )
     }
 }

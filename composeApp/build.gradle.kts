@@ -17,7 +17,7 @@ kotlin {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
         }
     }
-    
+
     iosX64()
     iosArm64()
     iosSimulatorArm64()
@@ -35,7 +35,7 @@ kotlin {
                 implementation(libs.navigation.compose)
             }
         }
-        
+
         val commonTest by getting {
             dependencies {
                 implementation(libs.kotlin.test)
@@ -43,7 +43,7 @@ kotlin {
                 implementation(libs.turbine)
             }
         }
-        
+
         val androidMain by getting {
             dependencies {
                 implementation(libs.androidx.activity.compose)
@@ -59,7 +59,7 @@ extensions.configure<com.android.build.api.dsl.LibraryExtension> {
     defaultConfig {
         minSdk = 23
     }
-    
+
     buildTypes {
         getByName("debug") {
             enableAndroidTestCoverage = true
@@ -86,10 +86,10 @@ kover {
                 // Exclude UI, Navigation, and Entry point classes from coverage
                 // as they typically require UI tests (Kaspresso/Espresso) rather than unit tests.
                 classes(
-                    "*.ui.*", 
+                    "*.ui.*",
                     "com.github.lucaengel.packpilot.App*",
                     "com.github.lucaengel.packpilot.BackHandler*",
-                    "com.github.lucaengel.packpilot.Screen*"
+                    "com.github.lucaengel.packpilot.Screen*",
                 )
             }
         }
@@ -112,7 +112,7 @@ tasks.withType<Test> {
 }
 
 tasks.register<JacocoReport>("jacocoTestReport") {
-    // If you don't have instrumentation tests in composeApp yet, 
+    // If you don't have instrumentation tests in composeApp yet,
     // you might want to remove "createDebugCoverageReport" until you add them.
     dependsOn("testDebugUnitTest")
 
@@ -121,34 +121,41 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         html.required.set(true)
     }
 
-    val fileFilter = listOf(
-        "**/R.class",
-        "**/R$*.class",
-        "**/BuildConfig.*",
-        "**/Manifest*.*",
-        "**/*Test*.*",
-        "android/**/*.*"
-    )
-    
-    val debugTree = fileTree("${layout.buildDirectory.get()}/intermediates/javac/debug/classes") {
-        exclude(fileFilter)
-    }
-    // KMP Kotlin classes are stored in a different location
-    val kotlinTree = fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
-        exclude(fileFilter)
-    }
-
-    sourceDirectories.setFrom(files(
-        "${project.projectDir}/src/commonMain/kotlin",
-        "${project.projectDir}/src/androidMain/kotlin"
-    ))
-    classDirectories.setFrom(files(debugTree, kotlinTree))
-    executionData.setFrom(fileTree(layout.buildDirectory) {
-        include(
-            "outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec",
-            "outputs/code_coverage/debugAndroidTest/connected/*/coverage.ec"
+    val fileFilter =
+        listOf(
+            "**/R.class",
+            "**/R$*.class",
+            "**/BuildConfig.*",
+            "**/Manifest*.*",
+            "**/*Test*.*",
+            "android/**/*.*",
         )
-    })
+
+    val debugTree =
+        fileTree("${layout.buildDirectory.get()}/intermediates/javac/debug/classes") {
+            exclude(fileFilter)
+        }
+    // KMP Kotlin classes are stored in a different location
+    val kotlinTree =
+        fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
+            exclude(fileFilter)
+        }
+
+    sourceDirectories.setFrom(
+        files(
+            "${project.projectDir}/src/commonMain/kotlin",
+            "${project.projectDir}/src/androidMain/kotlin",
+        ),
+    )
+    classDirectories.setFrom(files(debugTree, kotlinTree))
+    executionData.setFrom(
+        fileTree(layout.buildDirectory) {
+            include(
+                "outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec",
+                "outputs/code_coverage/debugAndroidTest/connected/*/coverage.ec",
+            )
+        },
+    )
 }
 
 tasks.register<Copy>("copyEmmaReport") {
