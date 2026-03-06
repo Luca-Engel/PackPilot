@@ -93,7 +93,7 @@ class PackingViewModelTest {
                         .find { it.name == "Socks" }
                 assertEquals(2, socks?.quantity)
 
-                // Update to 5 days
+                // Update trip length to 5 days
                 viewModel.updateTripDates(tripId, start, start.plus(4, DateTimeUnit.DAY))
 
                 // Wait for update
