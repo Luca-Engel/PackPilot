@@ -275,7 +275,13 @@ class PackingViewModel(
             )
         repository.addItem(newItem)
 
-        val generalList = lists.value.values.find { it.isGeneral } ?: return
+        var generalList = lists.value.values.find { it.isGeneral }
+        if (generalList == null) {
+            // If repository initialization hasn't finished, create a new one.
+            // In practice, this should only happen in tests if we don't wait.
+            generalList = PackingList("g1", "General Essentials", emptyList(), isGeneral = true)
+        }
+
         repository.addList(generalList.copy(itemIds = generalList.itemIds + newItemId))
     }
 

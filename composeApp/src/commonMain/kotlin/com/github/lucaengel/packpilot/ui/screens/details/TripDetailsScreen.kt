@@ -49,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.github.lucaengel.packpilot.model.ItemSource
@@ -113,28 +114,36 @@ fun TripDetailsScreen(
                 },
                 actions = {
                     if (isEditMode) {
-                        IconButton(onClick = { viewModel.undo() }, enabled = canUndo) {
+                        IconButton(
+                            onClick = { viewModel.undo() },
+                            enabled = canUndo,
+                            modifier = Modifier.testTag("UndoButton")
+                        ) {
                             Icon(Icons.AutoMirrored.Filled.Undo, "Undo")
                         }
-                        IconButton(onClick = { viewModel.redo() }, enabled = canRedo) {
+                        IconButton(
+                            onClick = { viewModel.redo() },
+                            enabled = canRedo,
+                            modifier = Modifier.testTag("RedoButton")
+                        ) {
                             Icon(Icons.AutoMirrored.Filled.Redo, "Redo")
                         }
                         IconButton(onClick = {
                             viewModel.clearHistory()
                             isEditMode = false
-                        }) {
+                        }, modifier = Modifier.testTag("SaveEditButton")) {
                             Icon(Icons.Default.Check, "Save", tint = MaterialTheme.colorScheme.primary)
                         }
                     } else {
-                        IconButton(onClick = { isEditMode = true }) {
+                        IconButton(onClick = { isEditMode = true }, modifier = Modifier.testTag("EditModeButton")) {
                             Icon(Icons.Default.Edit, "Edit")
                         }
                     }
-                    IconButton(onClick = { showDatePicker = true }) {
-                        Icon(Icons.Default.DateRange, null)
+                    IconButton(onClick = { showDatePicker = true }, modifier = Modifier.testTag("DatePickerButton")) {
+                        Icon(Icons.Default.DateRange, "Change Dates")
                     }
-                    IconButton(onClick = { showDeleteDialog = true }) {
-                        Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error)
+                    IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.testTag("DeleteTripButton")) {
+                        Icon(Icons.Default.Delete, "Delete Trip", tint = MaterialTheme.colorScheme.error)
                     }
                 },
             )
@@ -144,7 +153,7 @@ fun TripDetailsScreen(
                 Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
                     Button(
                         onClick = { showAddCustomDialog = true },
-                        modifier = Modifier.padding(16.dp).fillMaxWidth().height(56.dp),
+                        modifier = Modifier.padding(16.dp).fillMaxWidth().height(56.dp).testTag("AddCustomItemButton"),
                         shape = RoundedCornerShape(16.dp),
                     ) {
                         Icon(Icons.Default.Add, null)
@@ -225,7 +234,7 @@ fun TripDetailsScreen(
                         viewModel.updateTripDates(tripId, start, end)
                     }
                     showDatePicker = false
-                }) { Text("Update") }
+                }, modifier = Modifier.testTag("UpdateDatesConfirm")) { Text("Update") }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
@@ -243,7 +252,12 @@ fun TripDetailsScreen(
             title = { Text("Add Custom Item") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextField(value = name, onValueChange = { name = it }, label = { Text("Item Name") })
+                    TextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Item Name") },
+                        modifier = Modifier.testTag("CustomItemNameInput")
+                    )
                     TextField(value = qty, onValueChange = {
                         if (it.all { c ->
                                 c.isDigit()
@@ -251,7 +265,7 @@ fun TripDetailsScreen(
                         ) {
                             qty = it
                         }
-                    }, label = { Text("Quantity") })
+                    }, label = { Text("Quantity") }, modifier = Modifier.testTag("CustomItemQtyInput"))
                 }
             },
             confirmButton = {
@@ -260,7 +274,7 @@ fun TripDetailsScreen(
                         viewModel.addCustomItemToTrip(tripId, name, qty.toIntOrNull() ?: 1)
                         showAddCustomDialog = false
                     }
-                }) { Text("Add") }
+                }, modifier = Modifier.testTag("ConfirmAddCustomItem")) { Text("Add") }
             },
             dismissButton = { TextButton(onClick = { showAddCustomDialog = false }) { Text("Cancel") } },
         )
@@ -275,7 +289,8 @@ fun TripDetailsScreen(
                 TextButton(onClick = {
                     viewModel.deleteTrip(tripId)
                     onBack()
-                }, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
+                }, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.testTag("ConfirmDeleteTrip")) {
                     Text("Delete")
                 }
             },

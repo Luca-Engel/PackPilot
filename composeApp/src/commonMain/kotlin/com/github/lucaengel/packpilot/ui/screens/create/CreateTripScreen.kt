@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.github.lucaengel.packpilot.viewmodel.PackingViewModel
 import kotlinx.datetime.*
@@ -44,7 +45,7 @@ fun CreateTripScreen(viewModel: PackingViewModel, onTripCreated: () -> Unit, onB
                         viewModel.createTrip(title, selectedListId, start, end)
                         onTripCreated()
                     },
-                    modifier = Modifier.padding(16.dp).fillMaxWidth().height(56.dp),
+                    modifier = Modifier.padding(16.dp).fillMaxWidth().height(56.dp).testTag("ConfirmTripButton"),
                     enabled = title.isNotEmpty() && selectedListId.isNotEmpty() && dateRangePickerState.selectedStartDateMillis != null && dateRangePickerState.selectedEndDateMillis != null,
                     shape = RoundedCornerShape(16.dp)
                 ) {
@@ -58,13 +59,13 @@ fun CreateTripScreen(viewModel: PackingViewModel, onTripCreated: () -> Unit, onB
                 value = title,
                 onValueChange = { title = it },
                 label = { Text("Trip Name") },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().testTag("TripNameInput"),
                 shape = RoundedCornerShape(12.dp)
             )
 
             OutlinedCard(
                 onClick = { showDatePicker = true },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().testTag("DateSelectorCard"),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -88,7 +89,7 @@ fun CreateTripScreen(viewModel: PackingViewModel, onTripCreated: () -> Unit, onB
                 onValueChange = { searchQuery = it },
                 placeholder = { Text("Search activity type...") },
                 leadingIcon = { Icon(Icons.Default.Search, null) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().testTag("ActivitySearchInput"),
                 shape = RoundedCornerShape(12.dp)
             )
 
@@ -99,10 +100,14 @@ fun CreateTripScreen(viewModel: PackingViewModel, onTripCreated: () -> Unit, onB
                         onClick = { selectedListId = list.id },
                         color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                         shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("ActivityType_${list.title}")
                     ) {
                         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            RadioButton(selected = isSelected, onClick = { selectedListId = list.id })
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = { selectedListId = list.id },
+                                modifier = Modifier.testTag("ActivityRadioButton_${list.title}")
+                            )
                             Text(list.title, style = MaterialTheme.typography.bodyLarge)
                         }
                     }
@@ -114,7 +119,7 @@ fun CreateTripScreen(viewModel: PackingViewModel, onTripCreated: () -> Unit, onB
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
-            confirmButton = { TextButton(onClick = { showDatePicker = false }) { Text("OK") } }
+            confirmButton = { TextButton(onClick = { showDatePicker = false }, modifier = Modifier.testTag("DatePickerOk")) { Text("OK") } }
         ) {
             DateRangePicker(state = dateRangePickerState, modifier = Modifier.weight(1f))
         }

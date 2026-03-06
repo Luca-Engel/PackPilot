@@ -12,13 +12,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.github.lucaengel.packpilot.ui.components.BaseTemplateItemRow
 import com.github.lucaengel.packpilot.viewmodel.PackingViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GeneralItemsScreen(viewModel: PackingViewModel, onBack: () -> Unit) {
+fun GeneralItemsScreen(
+    viewModel: PackingViewModel,
+    onBack: () -> Unit,
+) {
     // Reset history when screen is closed (including system back button)
     DisposableEffect(Unit) {
         onDispose {
@@ -45,34 +49,34 @@ fun GeneralItemsScreen(viewModel: PackingViewModel, onBack: () -> Unit) {
                             Icon(Icons.AutoMirrored.Filled.Redo, "Redo")
                         }
                     }
-                }
+                },
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }) {
                 Icon(Icons.Default.Add, contentDescription = "Add Essential")
             }
-        }
+        },
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
             Text(
                 "These items are automatically added to every trip.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
-            
+
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 items(items) { item ->
                     BaseTemplateItemRow(
                         item = item,
                         onUpdateQuantity = { viewModel.updateBaseItemQuantity(item.id, it) },
                         onTogglePerDay = { viewModel.toggleBaseItemPerDay(item.id) },
-                        onDelete = { viewModel.removeGeneralItem(item.id) }
+                        onDelete = { viewModel.removeGeneralItem(item.id) },
                     )
                 }
             }
@@ -88,10 +92,24 @@ fun GeneralItemsScreen(viewModel: PackingViewModel, onBack: () -> Unit) {
             title = { Text("New Essential") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextField(value = name, onValueChange = { name = it }, label = { Text("Item Name") })
-                    TextField(value = qty, onValueChange = { if (it.all { c -> c.isDigit() }) qty = it }, label = { Text("Quantity") })
+                    TextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Item Name") },
+                        modifier = Modifier.testTag("EssentialItemNameInput"),
+                    )
+                    TextField(
+                        value = qty,
+                        onValueChange = { if (it.all { c -> c.isDigit() }) qty = it },
+                        label = { Text("Quantity") },
+                        modifier = Modifier.testTag("EssentialItemQtyInput"),
+                    )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = isPerDay, onCheckedChange = { isPerDay = it })
+                        Checkbox(
+                            checked = isPerDay,
+                            onCheckedChange = { isPerDay = it },
+                            modifier = Modifier.testTag("EssentialPerDayCheckbox"),
+                        )
                         Text("Per Day")
                     }
                 }
@@ -102,9 +120,9 @@ fun GeneralItemsScreen(viewModel: PackingViewModel, onBack: () -> Unit) {
                         viewModel.addGeneralItem(name, qty.toIntOrNull() ?: 1, isPerDay)
                         showAddDialog = false
                     }
-                }) { Text("Add") }
+                }, modifier = Modifier.testTag("ConfirmAddEssential")) { Text("Add") }
             },
-            dismissButton = { TextButton(onClick = { showAddDialog = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { showAddDialog = false }) { Text("Cancel") } },
         )
     }
 }

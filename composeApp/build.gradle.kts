@@ -49,6 +49,19 @@ kotlin {
                 implementation(libs.androidx.activity.compose)
             }
         }
+
+        val androidInstrumentedTest by getting {
+            dependsOn(commonTest)
+            dependencies {
+                implementation(libs.androidx.compose.ui.test.junit4)
+                implementation(libs.androidx.compose.ui.test.manifest)
+                implementation(libs.androidx.junit)
+                implementation(libs.androidx.espresso.core)
+
+                // Added: GrantPermissionRule lives in androidx.test:rules
+                implementation("androidx.test:rules:1.5.0")
+            }
+        }
     }
 }
 
@@ -56,8 +69,14 @@ kotlin {
 extensions.configure<com.android.build.api.dsl.LibraryExtension> {
     namespace = "com.github.lucaengel.packpilot"
     compileSdk = 36
+
     defaultConfig {
         minSdk = 23
+
+        // NOTE: In a library module, targetSdk is typically not set here.
+        // We set the test APK targetSdk via testOptions.targetSdk below.
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArguments["noverify"] = "true"
     }
 
     buildTypes {
@@ -68,6 +87,10 @@ extensions.configure<com.android.build.api.dsl.LibraryExtension> {
     }
 
     testOptions {
+        // Added: force the instrumentation TEST APK to target a modern SDK
+        // This removes the “built for an older version of Android” warning during connected tests.
+        targetSdk = 36
+
         unitTests {
             isIncludeAndroidResources = true
         }
@@ -112,9 +135,8 @@ tasks.withType<Test> {
 }
 
 tasks.register<JacocoReport>("jacocoTestReport") {
-    // If you don't have instrumentation tests in composeApp yet,
-    // you might want to remove "createDebugCoverageReport" until you add them.
-    dependsOn("testDebugUnitTest")
+    // This task now triggers both unit and UI tests
+    dependsOn("testDebugUnitTest", "createDebugCoverageReport")
 
     reports {
         xml.required.set(true)
@@ -135,6 +157,7 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         fileTree("${layout.buildDirectory.get()}/intermediates/javac/debug/classes") {
             exclude(fileFilter)
         }
+
     // KMP Kotlin classes are stored in a different location
     val kotlinTree =
         fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
@@ -147,22 +170,29 @@ tasks.register<JacocoReport>("jacocoTestReport") {
             "${project.projectDir}/src/androidMain/kotlin",
         ),
     )
+
     classDirectories.setFrom(files(debugTree, kotlinTree))
+
     executionData.setFrom(
         fileTree(layout.buildDirectory) {
             include(
                 "outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec",
-                "outputs/code_coverage/debugAndroidTest/connected/*/coverage.ec",
+                "outputs/code_coverage/debugAndroidTest/connected/**/*.ec",
             )
         },
     )
 }
 
 tasks.register<Copy>("copyEmmaReport") {
-    from(layout.buildDirectory.dir("outputs/code_coverage/debugAndroidTest/connected/Pixel_2_API_33(AVD) - 13/"))
-    include("coverage.ec")
+    // Find any coverage.ec file in the connected directory to avoid hardcoded device names
+    from(layout.buildDirectory.dir("outputs/code_coverage/debugAndroidTest/connected/"))
+    include("**/coverage.ec")
+    eachFile {
+        path = name // flatten the directory structure
+    }
     into(layout.buildDirectory.dir("outputs/code_coverage/debugAndroidTest/connected/"))
     rename { it.replace(".ec", ".exec") }
+    includeEmptyDirs = false
 }
 
 tasks.named("connectedCheck") {

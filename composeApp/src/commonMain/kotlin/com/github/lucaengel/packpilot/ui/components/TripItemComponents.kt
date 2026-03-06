@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.github.lucaengel.packpilot.model.PackingItem
@@ -40,7 +41,7 @@ fun ImprovedTripItemRow(
 ) {
     val isPacked = tripItem.isPacked
     Surface(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)),
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).testTag("TripItemRow_${tripItem.name}"),
         color =
             if (isPacked) {
                 MaterialTheme.colorScheme.surfaceVariant.copy(
@@ -55,7 +56,11 @@ fun ImprovedTripItemRow(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Checkbox(checked = isPacked, onCheckedChange = { viewModel.togglePacked(tripId, tripItem.id) })
+            Checkbox(
+                checked = isPacked,
+                onCheckedChange = { viewModel.togglePacked(tripId, tripItem.id) },
+                modifier = Modifier.testTag("PackedCheckbox_${tripItem.name}")
+            )
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -71,7 +76,7 @@ fun ImprovedTripItemRow(
                 ) {
                     Text(
                         "Quantity: ${tripItem.quantity}",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp).testTag("ItemQuantity_${tripItem.name}"),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
@@ -79,16 +84,25 @@ fun ImprovedTripItemRow(
             }
 
             if (isEditMode) {
-                IconButton(onClick = { viewModel.updateTripItemQuantity(tripId, tripItem.id, tripItem.quantity - 1) }) {
-                    Icon(Icons.Default.Remove, null, modifier = Modifier.size(18.dp))
+                IconButton(
+                    onClick = { viewModel.updateTripItemQuantity(tripId, tripItem.id, tripItem.quantity - 1) },
+                    modifier = Modifier.testTag("DecreaseQuantity_${tripItem.name}")
+                ) {
+                    Icon(Icons.Default.Remove, "Decrease")
                 }
-                IconButton(onClick = { viewModel.updateTripItemQuantity(tripId, tripItem.id, tripItem.quantity + 1) }) {
-                    Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+                IconButton(
+                    onClick = { viewModel.updateTripItemQuantity(tripId, tripItem.id, tripItem.quantity + 1) },
+                    modifier = Modifier.testTag("IncreaseQuantity_${tripItem.name}")
+                ) {
+                    Icon(Icons.Default.Add, "Increase")
                 }
-                IconButton(onClick = { viewModel.removeTripItem(tripId, tripItem.id) }) {
+                IconButton(
+                    onClick = { viewModel.removeTripItem(tripId, tripItem.id) },
+                    modifier = Modifier.testTag("DeleteItem_${tripItem.name}")
+                ) {
                     Icon(
                         Icons.Default.Delete,
-                        null,
+                        "Delete",
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(18.dp),
                     )
@@ -105,21 +119,27 @@ fun BaseTemplateItemRow(
     onTogglePerDay: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+    Card(modifier = Modifier.fillMaxWidth().testTag("BaseItemRow_${item.name}"), shape = RoundedCornerShape(16.dp)) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(item.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
-                    IconButton(onClick = { onUpdateQuantity(item.baseQuantity - 1) }, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Remove, null, modifier = Modifier.size(16.dp))
+                    IconButton(
+                        onClick = { onUpdateQuantity(item.baseQuantity - 1) },
+                        modifier = Modifier.size(32.dp).testTag("DecreaseBaseQty_${item.name}")
+                    ) {
+                        Icon(Icons.Default.Remove, "Decrease")
                     }
                     Text(
                         "${item.baseQuantity}",
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(horizontal = 8.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp).testTag("BaseQtyText_${item.name}"),
                     )
-                    IconButton(onClick = { onUpdateQuantity(item.baseQuantity + 1) }, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
+                    IconButton(
+                        onClick = { onUpdateQuantity(item.baseQuantity + 1) },
+                        modifier = Modifier.size(32.dp).testTag("IncreaseBaseQty_${item.name}")
+                    ) {
+                        Icon(Icons.Default.Add, "Increase")
                     }
 
                     Spacer(Modifier.width(16.dp))
@@ -134,11 +154,12 @@ fun BaseTemplateItemRow(
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         },
+                        modifier = Modifier.testTag("PerDayChip_${item.name}")
                     )
                 }
             }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error)
+            IconButton(onClick = onDelete, modifier = Modifier.testTag("DeleteBaseItem_${item.name}")) {
+                Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error)
             }
         }
     }

@@ -21,6 +21,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.github.lucaengel.packpilot.ui.components.BaseTemplateItemRow
 import com.github.lucaengel.packpilot.viewmodel.PackingViewModel
@@ -95,6 +96,7 @@ fun ManageTripTypesScreen(
                     items(activityTypes) { type ->
                         Card(
                             onClick = { selectedTypeId = type.id },
+                            modifier = Modifier.testTag("TripType_${type.title}"),
                             colors =
                                 if (selectedTypeId ==
                                     type.id
@@ -131,8 +133,11 @@ fun ManageTripTypesScreen(
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                         )
-                        IconButton(onClick = { showAddItemDialog = true }) {
-                            Icon(Icons.Default.AddCircle, null, tint = MaterialTheme.colorScheme.primary)
+                        IconButton(
+                            onClick = { showAddItemDialog = true },
+                            modifier = Modifier.testTag("AddItemToType"),
+                        ) {
+                            Icon(Icons.Default.AddCircle, "Add item to type", tint = MaterialTheme.colorScheme.primary)
                         }
                     }
 
@@ -164,15 +169,24 @@ fun ManageTripTypesScreen(
                             title = { Text("Add to ${type.title}") },
                             text = {
                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    TextField(value = name, onValueChange = { name = it }, label = { Text("Item Name") })
-                                    TextField(value = qty, onValueChange = {
-                                        if (it.all { c ->
-                                                c.isDigit()
+                                    TextField(
+                                        value = name,
+                                        onValueChange = { name = it },
+                                        label = { Text("Item Name") },
+                                        modifier = Modifier.testTag("ItemNameInput"),
+                                    )
+                                    TextField(
+                                        value = qty,
+                                        onValueChange = {
+                                            if (it.all { c ->
+                                                    c.isDigit()
+                                                }
+                                            ) {
+                                                qty = it
                                             }
-                                        ) {
-                                            qty = it
-                                        }
-                                    }, label = { Text("Quantity") })
+                                        },
+                                        label = { Text("Quantity") },
+                                    )
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Checkbox(checked = isPerDay, onCheckedChange = { isPerDay = it })
                                         Text("Per Day")
@@ -204,7 +218,14 @@ fun ManageTripTypesScreen(
         AlertDialog(
             onDismissRequest = { showAddTypeDialog = false },
             title = { Text("New Trip Type") },
-            text = { TextField(value = typeName, onValueChange = { typeName = it }, label = { Text("e.g. Skiing") }) },
+            text = {
+                TextField(
+                    value = typeName,
+                    onValueChange = { typeName = it },
+                    label = { Text("e.g. Skiing") },
+                    modifier = Modifier.testTag("NewTypeNameInput"),
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     if (typeName.isNotEmpty()) {

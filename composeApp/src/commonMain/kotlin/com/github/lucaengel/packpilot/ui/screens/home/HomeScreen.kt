@@ -16,6 +16,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.github.lucaengel.packpilot.model.Trip
@@ -102,7 +103,7 @@ fun HomeScreen(
 @Composable
 fun TripCard(trip: Trip, isPast: Boolean = false, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        modifier = Modifier.fillMaxWidth().clickable { onClick() }.testTag("TripCard_${trip.title}"),
         shape = RoundedCornerShape(20.dp),
         colors = if (isPast) CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)) else CardDefaults.cardColors()
     ) {
