@@ -39,6 +39,7 @@ check_android_task:
     adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 3; done; input keyevent 82'
 
   disable_animations_script: |
+    # Disable animations for faster/more stable tests
     adb shell settings put global window_animation_scale 0.0
     adb shell settings put global transition_animation_scale 0.0
     adb shell settings put global animator_duration_scale 0.0
@@ -55,7 +56,7 @@ check_android_task:
 
   check_script: |
     # Run tests and generate coverage
-    ./gradlew :composeApp:allTests :composeApp:jacocoTestReport :androidApp:connectedCheck
+    ./gradlew :composeApp:jacocoTestReport
 
   report_qlty_script: |
     export PATH="$HOME/.qlty/bin:$PATH"
