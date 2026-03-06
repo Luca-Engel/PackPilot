@@ -1,0 +1,119 @@
+container:
+  image: cirrusci/android-sdk:30
+  cpu: 4
+  memory: 16G
+  kvm: true
+
+env:
+  QLTY_COVERAGE_TOKEN: ENCRYPTED[daeef67a63af8388fde1e7094d908760cf60a1ef803b4876b4ce2d3be6bbebb7b7b19c34fc4277f92f175efdaf93923e]
+
+check_android_task:
+  name: Run Android tests
+
+  install_firebase_emulator_script: |
+    curl -sL https://firebase.tools | bash
+
+  install_emulator_script: |
+    sdkmanager --install "system-images;android-30;google_apis_playstore;x86"
+
+  create_avd_script: |
+    echo no | avdmanager create avd --force \
+      --name emulator \
+      --package "system-images;android-30;google_apis_playstore;x86"
+
+  start_avd_background_script: |
+    $ANDROID_HOME/emulator/emulator \
+      -avd emulator \
+      -no-audio \
+      -no-boot-anim \
+      -gpu swiftshader_indirect \
+      -no-snapshot \
+      -no-window \
+      -camera-back none
+
+  assemble_instrumented_tests_script: |
+    chmod +x gradlew
+    ./gradlew :androidApp:assembleDebugAndroidTest
+
+  wait_for_avd_script: |
+    adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 3; done; input keyevent 82'
+
+  disable_animations_script: |
+    # Disable animations for faster/more stable tests
+    adb shell settings put global window_animation_scale 0.0
+    adb shell settings put global transition_animation_scale 0.0
+    adb shell settings put global animator_duration_scale 0.0
+
+  prepare_qlty_script: |
+    curl -fsSL https://qlty.sh | bash
+    export PATH="$HOME/.qlty/bin:$PATH"
+    qlty --version
+
+  screen_record_background_script: |
+    for n in $(seq 1 20); do
+      adb exec-out screenrecord --time-limit=180 --output-format=h264 - > "$n.h264"
+    done
+
+  check_script: |
+    # Run tests and generate coverage
+    ./gradlew :composeApp:jacocoTestReport
+
+  report_qlty_script: |
+    export PATH="$HOME/.qlty/bin:$PATH"
+
+    export JACOCO_SOURCE_PATH="composeApp/src/commonMain/kotlin composeApp/src/androidMain/kotlin composeApp/src/jvmMain/kotlin"
+
+    echo "CIRRUS_CHANGE_IN_REPO=$CIRRUS_CHANGE_IN_REPO"
+    echo "CIRRUS_PR=$CIRRUS_PR"
+    echo "CIRRUS_BRANCH=$CIRRUS_BRANCH"
+    echo "CIRRUS_BASE_BRANCH=$CIRRUS_BASE_BRANCH"
+    echo "CIRRUS_TASK_ID=$CIRRUS_TASK_ID"
+    echo "CIRRUS_BUILD_ID=$CIRRUS_BUILD_ID"
+    echo "JACOCO_SOURCE_PATH=$JACOCO_SOURCE_PATH"
+
+    FILE_PRESENCE_THRESHOLD="20"
+    BUILD_ID="${CIRRUS_TASK_ID:-$CIRRUS_BUILD_ID}"
+
+    if [ -z "$BUILD_ID" ]; then
+      echo "ERROR: No CIRRUS_TASK_ID or CIRRUS_BUILD_ID available; cannot set Qlty build id."
+      exit 1
+    fi
+
+    if [ -n "$CIRRUS_PR" ]; then
+      qlty coverage publish \
+        --override-build-id "$BUILD_ID" \
+        --override-commit-sha "$CIRRUS_CHANGE_IN_REPO" \
+        --override-pr-number "$CIRRUS_PR" \
+        --validate-file-threshold "$FILE_PRESENCE_THRESHOLD" \
+        composeApp/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
+    else
+      qlty coverage publish \
+        --override-build-id "$BUILD_ID" \
+        --override-commit-sha "$CIRRUS_CHANGE_IN_REPO" \
+        --override-branch "${CIRRUS_BRANCH:-$CIRRUS_BASE_BRANCH}" \
+        --validate-file-threshold "$FILE_PRESENCE_THRESHOLD" \
+        composeApp/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
+    fi
+
+  lint_script: |
+    ./gradlew :androidApp:lintDebug
+
+  always:
+    wait_for_screenrecord_script: |
+      pkill -2 -x adb
+      sleep 2
+
+    screenrecord_artifacts:
+      path: "*.h264"
+
+    android_lint_artifacts:
+      path: ./androidApp/build/reports/lint-results-debug.xml
+      format: android-lint
+
+    test_artifacts:
+      path: "**/build/test-results/**/*.xml"
+      format: junit
+
+    androidtest_artifacts:
+      path: "**/build/outputs/**/*.xml"
+      format: junit
