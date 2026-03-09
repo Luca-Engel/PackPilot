@@ -111,6 +111,7 @@ class PackingViewModel(
                     quantity = qty,
                     originalItemId = item.id,
                     source = ItemSource.ESSENTIAL,
+                    category = item.category,
                 ),
             )
         }
@@ -124,6 +125,7 @@ class PackingViewModel(
                     quantity = qty,
                     originalItemId = item.id,
                     source = ItemSource.ACTIVITY,
+                    category = item.category,
                 ),
             )
         }
@@ -191,6 +193,20 @@ class PackingViewModel(
         repository.updateTrip(trip.copy(items = updatedItems))
     }
 
+    fun updateTripItemCategory(
+        tripId: String,
+        tripItemId: String,
+        category: ItemCategory,
+    ) {
+        recordHistory()
+        val trip = trips.value[tripId] ?: return
+        val updatedItems =
+            trip.items.map {
+                if (it.id == tripItemId) it.copy(category = category) else it
+            }
+        repository.updateTrip(trip.copy(items = updatedItems))
+    }
+
     fun removeTripItem(
         tripId: String,
         tripItemId: String,
@@ -205,6 +221,7 @@ class PackingViewModel(
         tripId: String,
         name: String,
         quantity: Int,
+        category: ItemCategory = ItemCategory.OTHER,
     ) {
         recordHistory()
         val trip = trips.value[tripId] ?: return
@@ -214,6 +231,7 @@ class PackingViewModel(
                 name = name,
                 quantity = quantity,
                 source = ItemSource.CUSTOM,
+                category = category,
             )
         repository.updateTrip(trip.copy(items = trip.items + newItem))
     }
@@ -234,6 +252,7 @@ class PackingViewModel(
         name: String,
         baseQuantity: Int,
         isPerDay: Boolean,
+        category: ItemCategory = ItemCategory.OTHER,
     ) {
         recordHistory()
         val newItemId = "item_${Random.nextInt()}"
@@ -243,6 +262,7 @@ class PackingViewModel(
                 name = name,
                 baseQuantity = baseQuantity,
                 isPerDay = isPerDay,
+                category = category,
             )
         repository.addItem(newItem)
 
@@ -259,10 +279,20 @@ class PackingViewModel(
         repository.addList(list.copy(itemIds = list.itemIds - itemId))
     }
 
+    fun updateBaseItemCategory(
+        itemId: String,
+        category: ItemCategory,
+    ) {
+        recordHistory()
+        val item = items.value[itemId] ?: return
+        repository.addItem(item.copy(category = category))
+    }
+
     fun addGeneralItem(
         name: String,
         baseQuantity: Int,
         isPerDay: Boolean,
+        category: ItemCategory = ItemCategory.OTHER,
     ) {
         recordHistory()
         val newItemId = "item_${Random.nextInt()}"
@@ -272,6 +302,7 @@ class PackingViewModel(
                 name = name,
                 baseQuantity = baseQuantity,
                 isPerDay = isPerDay,
+                category = category,
             )
         repository.addItem(newItem)
 

@@ -1,10 +1,20 @@
 package com.github.lucaengel.packpilot.model
 
-import kotlinx.serialization.Serializable
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
+import kotlinx.serialization.Serializable
+
+enum class ItemCategory {
+    CLOTHING,
+    TOILETRIES,
+    ELECTRONICS,
+    DOCUMENTS,
+    FOOD,
+    EQUIPMENT,
+    OTHER,
+}
 
 @Serializable
 data class PackingItem(
@@ -12,6 +22,7 @@ data class PackingItem(
     val name: String,
     val baseQuantity: Int = 1,
     val isPerDay: Boolean = false,
+    val category: ItemCategory = ItemCategory.OTHER,
 )
 
 @Serializable
@@ -19,11 +30,13 @@ data class PackingList(
     val id: String,
     val title: String,
     val itemIds: List<String> = emptyList(),
-    val isGeneral: Boolean = false
+    val isGeneral: Boolean = false,
 )
 
 enum class ItemSource {
-    ESSENTIAL, ACTIVITY, CUSTOM
+    ESSENTIAL,
+    ACTIVITY,
+    CUSTOM,
 }
 
 @Serializable
@@ -33,7 +46,8 @@ data class TripItem(
     val quantity: Int,
     val isPacked: Boolean = false,
     val originalItemId: String? = null,
-    val source: ItemSource = ItemSource.CUSTOM
+    val source: ItemSource = ItemSource.CUSTOM,
+    val category: ItemCategory = ItemCategory.OTHER,
 )
 
 @Serializable
@@ -44,7 +58,7 @@ data class Trip(
     val endDate: LocalDate = Clock.System.todayIn(TimeZone.currentSystemDefault()),
     val items: List<TripItem> = emptyList(),
     val baseListId: String? = null,
-    val activityTitle: String = ""
+    val activityTitle: String = "",
 ) {
     val days: Int get() = (endDate.toEpochDays() - startDate.toEpochDays() + 1).coerceAtLeast(1)
 }
