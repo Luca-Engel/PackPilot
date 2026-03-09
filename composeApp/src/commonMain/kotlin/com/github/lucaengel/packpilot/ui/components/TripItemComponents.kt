@@ -161,11 +161,12 @@ fun CategorySelector(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    Box(modifier = modifier) {
+    Box {
         Surface(
             color = MaterialTheme.colorScheme.primaryContainer,
             shape = RoundedCornerShape(6.dp),
             onClick = { expanded = true },
+            modifier = modifier,
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
