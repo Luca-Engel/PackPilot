@@ -224,7 +224,7 @@ fun BaseTemplateItemRow(
                     Text(
                         "${item.baseQuantity}",
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(horizontal = 8.dp).testTag("BaseQtyText_${item.name}"),
+                        modifier = Modifier.padding(horizontal = 4.dp).testTag("BaseQtyText_${item.name}"),
                     )
                     IconButton(
                         onClick = { onUpdateQuantity(item.baseQuantity + 1) },
@@ -233,7 +233,7 @@ fun BaseTemplateItemRow(
                         Icon(Icons.Default.Add, "Increase")
                     }
 
-                    Spacer(Modifier.width(16.dp))
+                    Spacer(Modifier.width(8.dp))
 
                     @OptIn(ExperimentalMaterial3Api::class)
                     FilterChip(
@@ -248,7 +248,7 @@ fun BaseTemplateItemRow(
                         modifier = Modifier.testTag("PerDayChip_${item.name}"),
                     )
 
-                    Spacer(Modifier.width(16.dp))
+                    Spacer(Modifier.width(8.dp))
 
                     CategorySelector(
                         currentCategory = item.category,

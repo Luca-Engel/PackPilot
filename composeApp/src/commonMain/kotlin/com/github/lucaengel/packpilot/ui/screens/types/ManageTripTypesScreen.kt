@@ -97,7 +97,10 @@ fun ManageTripTypesScreen(
                 ) {
                     items(activityTypes) { type ->
                         Card(
-                            onClick = { selectedTypeId = type.id },
+                            onClick = {
+                                selectedTypeId = type.id
+                                isSidebarVisible = false
+                            },
                             modifier = Modifier.testTag("TripType_${type.title}"),
                             colors =
                                 if (selectedTypeId ==
@@ -207,12 +210,21 @@ fun ManageTripTypesScreen(
                                 }
                             },
                             confirmButton = {
-                                TextButton(onClick = {
-                                    if (name.isNotEmpty()) {
-                                        viewModel.addItemToTripType(selectedTypeId!!, name, qty.toIntOrNull() ?: 1, isPerDay, category)
-                                        showAddItemDialog = false
-                                    }
-                                }) { Text("Add") }
+                                TextButton(
+                                    onClick = {
+                                        if (name.isNotEmpty()) {
+                                            viewModel.addItemToTripType(
+                                                selectedTypeId!!,
+                                                name,
+                                                qty.toIntOrNull() ?: 1,
+                                                isPerDay,
+                                                category
+                                            )
+                                            showAddItemDialog = false
+                                        }
+                                    },
+                                    modifier = Modifier.testTag("ConfirmAddItemToType")
+                                ) { Text("Add") }
                             },
                             dismissButton = { TextButton(onClick = { showAddItemDialog = false }) { Text("Cancel") } },
                         )
@@ -240,12 +252,15 @@ fun ManageTripTypesScreen(
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
-                    if (typeName.isNotEmpty()) {
-                        viewModel.createNewTripType(typeName)
-                        showAddTypeDialog = false
-                    }
-                }) { Text("Create") }
+                TextButton(
+                    onClick = {
+                        if (typeName.isNotEmpty()) {
+                            viewModel.createNewTripType(typeName)
+                            showAddTypeDialog = false
+                        }
+                    },
+                    modifier = Modifier.testTag("ConfirmCreateType")
+                ) { Text("Create") }
             },
             dismissButton = { TextButton(onClick = { showAddTypeDialog = false }) { Text("Cancel") } },
         )
