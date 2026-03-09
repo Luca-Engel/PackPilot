@@ -363,4 +363,27 @@ class PackingViewModel(
             val list = listsMap[listId] ?: return@combine emptyList<PackingItem>()
             list.itemIds.mapNotNull { itemsMap[it] }
         }
+
+    fun observeTripSections(tripId: String): Flow<List<SourceSection>> =
+        trips.map { tripsMap ->
+            val trip = tripsMap[tripId] ?: return@map emptyList<SourceSection>()
+
+            val sourceOrder = listOf(ItemSource.ESSENTIAL, ItemSource.ACTIVITY, ItemSource.CUSTOM)
+            val categoryOrder = ItemCategory.entries.toList()
+
+            sourceOrder.mapNotNull { source ->
+                val itemsInSource = trip.items.filter { it.source == source }
+                if (itemsInSource.isEmpty()) return@mapNotNull null
+
+                val categories =
+                    categoryOrder.mapNotNull { category ->
+                        val itemsInCategory = itemsInSource.filter { it.category == category }
+                        if (itemsInCategory.isEmpty()) return@mapNotNull null
+                        CategorySection(category, itemsInCategory)
+                    }
+
+                if (categories.isEmpty()) return@mapNotNull null
+                SourceSection(source, categories)
+            }
+        }
 }

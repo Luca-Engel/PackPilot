@@ -352,4 +352,71 @@ class PackingViewModelTest {
         val lists = viewModel.getLists()
         assertTrue(lists.any { it.isGeneral })
     }
+
+    @Test
+    fun testObserveTripSectionsGroupsCorrectly() = runTest {
+        val fakeDataStore = FakeDataStoreManager()
+        val repository = PackingRepository(fakeDataStore, backgroundScope)
+        val viewModel = PackingViewModel(repository)
+
+        val list = waitForInitialization(viewModel)
+        val tripId = "test_trip"
+        val trip = Trip(
+            id = tripId,
+            title = "Grouping Trip",
+            items = listOf(
+                TripItem("1", "Essential Clothing", 1, source = ItemSource.ESSENTIAL, category = ItemCategory.CLOTHING),
+                TripItem("2", "Essential Toiletries", 1, source = ItemSource.ESSENTIAL, category = ItemCategory.TOILETRIES),
+                TripItem("3", "Custom Other", 1, source = ItemSource.CUSTOM, category = ItemCategory.OTHER),
+            )
+        )
+        repository.addTrip(trip)
+
+        viewModel.observeTripSections(tripId).test {
+            val sections = awaitItem()
+            
+            assertEquals(2, sections.size, "Should have 2 source sections (Essential and Custom)")
+            
+            val essentialSection = sections.find { it.source == ItemSource.ESSENTIAL }
+            assertNotNull(essentialSection)
+            assertEquals(2, essentialSection.categories.size, "Essential section should have 2 categories")
+            assertTrue(essentialSection.categories.any { it.category == ItemCategory.CLOTHING })
+            assertTrue(essentialSection.categories.any { it.category == ItemCategory.TOILETRIES })
+
+            val customSection = sections.find { it.source == ItemSource.CUSTOM }
+            assertNotNull(customSection)
+            assertEquals(1, customSection.categories.size, "Custom section should have 1 category")
+            assertEquals(ItemCategory.OTHER, customSection.categories[0].category)
+            
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun testObserveTripSectionsFiltersEmptySections() = runTest {
+        val fakeDataStore = FakeDataStoreManager()
+        val repository = PackingRepository(fakeDataStore, backgroundScope)
+        val viewModel = PackingViewModel(repository)
+
+        val list = waitForInitialization(viewModel)
+        val tripId = "test_trip"
+        val trip = Trip(
+            id = tripId,
+            title = "Empty Sections Trip",
+            items = listOf(
+                TripItem("1", "Essential Only", 1, source = ItemSource.ESSENTIAL, category = ItemCategory.CLOTHING),
+            )
+        )
+        repository.addTrip(trip)
+
+        viewModel.observeTripSections(tripId).test {
+            val sections = awaitItem()
+            
+            assertEquals(1, sections.size, "Should only have the Essential source section")
+            assertEquals(ItemSource.ESSENTIAL, sections[0].source)
+            assertEquals(1, sections[0].categories.size, "Should only have 1 category section")
+            
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 }

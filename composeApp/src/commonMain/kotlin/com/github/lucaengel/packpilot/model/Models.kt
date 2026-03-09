@@ -13,7 +13,10 @@ enum class ItemCategory {
     DOCUMENTS,
     FOOD,
     EQUIPMENT,
-    OTHER,
+    OTHER;
+
+    val displayName: String
+        get() = name.lowercase().replaceFirstChar { it.uppercase() }
 }
 
 @Serializable
@@ -62,3 +65,13 @@ data class Trip(
 ) {
     val days: Int get() = (endDate.toEpochDays() - startDate.toEpochDays() + 1).coerceAtLeast(1)
 }
+
+data class SourceSection(
+    val source: ItemSource,
+    val categories: List<CategorySection>
+)
+
+data class CategorySection(
+    val category: ItemCategory,
+    val items: List<TripItem>
+)

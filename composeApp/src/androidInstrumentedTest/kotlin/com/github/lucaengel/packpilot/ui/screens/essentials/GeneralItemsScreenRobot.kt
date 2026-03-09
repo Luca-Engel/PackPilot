@@ -20,7 +20,7 @@ class GeneralItemsScreenRobot(private val composeTestRule: ComposeContentTestRul
 
     fun selectCategoryInDialog(category: ItemCategory) {
         composeTestRule.onNodeWithTag("EssentialCategorySelector").performClick()
-        composeTestRule.onNodeWithText(category.name).performClick()
+        composeTestRule.onNodeWithText(category.displayName).performClick()
     }
 
     fun clickConfirmAdd() {
@@ -49,14 +49,14 @@ class GeneralItemsScreenRobot(private val composeTestRule: ComposeContentTestRul
     fun assertCategory(itemName: String, category: ItemCategory) {
         // Using a more robust selector that works even if nodes are merged
         composeTestRule.onNode(
-            hasText(category.name) and hasAnyAncestor(hasTestTag("BaseCategorySelector_$itemName")),
+            hasText(category.displayName) and hasAnyAncestor(hasTestTag("BaseCategorySelector_$itemName")),
             useUnmergedTree = true
         ).assertIsDisplayed()
     }
 
     fun changeCategory(itemName: String, newCategory: ItemCategory) {
         composeTestRule.onNodeWithTag("BaseCategorySelector_$itemName", useUnmergedTree = true).performClick()
-        composeTestRule.onNodeWithText(newCategory.name).performClick()
+        composeTestRule.onNodeWithText(newCategory.displayName).performClick()
     }
 }
 

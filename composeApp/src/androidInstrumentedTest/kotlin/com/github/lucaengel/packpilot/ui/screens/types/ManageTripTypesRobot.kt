@@ -37,7 +37,7 @@ class ManageTripTypesRobot(private val composeTestRule: ComposeContentTestRule) 
 
     fun selectCategoryInAddDialog(category: ItemCategory) {
         composeTestRule.onNodeWithTag("AddItemCategorySelector").performClick()
-        composeTestRule.onNodeWithText(category.name).performClick()
+        composeTestRule.onNodeWithText(category.displayName).performClick()
     }
 
     fun clickAdd() {
@@ -61,7 +61,7 @@ class ManageTripTypesRobot(private val composeTestRule: ComposeContentTestRule) 
         
         // Match the text anywhere within the row of this specific item. 
         // This is extremely robust against layout changes and semantics merging.
-        val matcher = hasText(category.name) and hasAnyAncestor(hasTestTag("BaseItemRow_$itemName"))
+        val matcher = hasText(category.displayName) and hasAnyAncestor(hasTestTag("BaseItemRow_$itemName"))
         
         composeTestRule.waitUntilExactlyOneExists(matcher, timeoutMillis = 5000)
         composeTestRule.onNode(matcher).assertExists()
@@ -69,7 +69,7 @@ class ManageTripTypesRobot(private val composeTestRule: ComposeContentTestRule) 
 
     fun changeCategory(itemName: String, newCategory: ItemCategory) {
         composeTestRule.onNodeWithTag("BaseCategorySelector_$itemName", useUnmergedTree = true).performClick()
-        composeTestRule.onNodeWithText(newCategory.name).performClick()
+        composeTestRule.onNodeWithText(newCategory.displayName).performClick()
     }
 
     fun assertSidebarVisible() {
