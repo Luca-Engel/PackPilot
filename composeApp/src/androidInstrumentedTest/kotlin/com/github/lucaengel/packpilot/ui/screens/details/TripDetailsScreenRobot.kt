@@ -30,6 +30,15 @@ class TripDetailsScreenRobot(private val composeTestRule: ComposeContentTestRule
         composeTestRule.onNodeWithTag("CustomItemNameInput").performTextInput(name)
     }
 
+    fun enterCustomItemQty(qty: String) {
+        composeTestRule.onNodeWithTag("CustomItemQtyInput").performTextReplacement(qty)
+    }
+
+    fun assertCustomItemQty(qty: String) {
+        // hasText is more robust for TextFields with labels/hints
+        composeTestRule.onNodeWithTag("CustomItemQtyInput").assert(hasText(qty))
+    }
+
     fun selectCategoryInCustomDialog(category: ItemCategory) {
         composeTestRule.onNodeWithTag("CustomItemCategorySelector").performClick()
         composeTestRule.onNodeWithText(category.name).performClick()
@@ -70,6 +79,26 @@ class TripDetailsScreenRobot(private val composeTestRule: ComposeContentTestRule
     fun changeCategory(itemName: String, newCategory: ItemCategory) {
         composeTestRule.onNodeWithTag("CategorySelector_$itemName", useUnmergedTree = true).performClick()
         composeTestRule.onNodeWithText(newCategory.name).performClick()
+    }
+
+    fun clickDatePicker() {
+        composeTestRule.onNodeWithTag("DatePickerButton").performClick()
+    }
+
+    fun assertDatePickerIsDisplayed() {
+        composeTestRule.onNodeWithTag("UpdateDatesConfirm").assertIsDisplayed()
+    }
+
+    fun clickUpdateDates() {
+        composeTestRule.onNodeWithTag("UpdateDatesConfirm").performClick()
+    }
+
+    fun assertDeleteDialogIsDisplayed() {
+        composeTestRule.onNodeWithTag("ConfirmDeleteTrip").assertIsDisplayed()
+    }
+
+    fun assertEditModeButtonExists() {
+        composeTestRule.onNodeWithTag("EditModeButton").assertExists()
     }
 }
 
