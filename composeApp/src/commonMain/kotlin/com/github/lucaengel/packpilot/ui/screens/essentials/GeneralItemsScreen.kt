@@ -14,7 +14,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.github.lucaengel.packpilot.model.ItemCategory
 import com.github.lucaengel.packpilot.ui.components.BaseTemplateItemRow
+import com.github.lucaengel.packpilot.ui.components.CategorySelector
 import com.github.lucaengel.packpilot.viewmodel.PackingViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,7 +40,7 @@ fun GeneralItemsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Essential Clothes") },
+                title = { Text("Essential Items") },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
                 actions = {
                     if (canUndo || canRedo) {
@@ -76,6 +78,7 @@ fun GeneralItemsScreen(
                         item = item,
                         onUpdateQuantity = { viewModel.updateBaseItemQuantity(item.id, it) },
                         onTogglePerDay = { viewModel.toggleBaseItemPerDay(item.id) },
+                        onUpdateCategory = { viewModel.updateBaseItemCategory(item.id, it) },
                         onDelete = { viewModel.removeGeneralItem(item.id) },
                     )
                 }
@@ -87,6 +90,7 @@ fun GeneralItemsScreen(
         var name by remember { mutableStateOf("") }
         var qty by remember { mutableStateOf("1") }
         var isPerDay by remember { mutableStateOf(false) }
+        var category by remember { mutableStateOf(ItemCategory.OTHER) }
         AlertDialog(
             onDismissRequest = { showAddDialog = false },
             title = { Text("New Essential") },
@@ -112,12 +116,21 @@ fun GeneralItemsScreen(
                         )
                         Text("Per Day")
                     }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Category: ", style = MaterialTheme.typography.bodyMedium)
+                        CategorySelector(
+                            currentCategory = category,
+                            onCategorySelected = { category = it },
+                            modifier = Modifier.testTag("EssentialCategorySelector")
+                        )
+                    }
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
                     if (name.isNotEmpty()) {
-                        viewModel.addGeneralItem(name, qty.toIntOrNull() ?: 1, isPerDay)
+                        viewModel.addGeneralItem(name, qty.toIntOrNull() ?: 1, isPerDay, category)
                         showAddDialog = false
                     }
                 }, modifier = Modifier.testTag("ConfirmAddEssential")) { Text("Add") }

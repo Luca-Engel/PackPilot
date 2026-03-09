@@ -2,6 +2,7 @@ package com.github.lucaengel.packpilot.ui.screens.details
 
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
+import com.github.lucaengel.packpilot.model.ItemCategory
 
 class TripDetailsScreenRobot(private val composeTestRule: ComposeContentTestRule) {
 
@@ -29,6 +30,20 @@ class TripDetailsScreenRobot(private val composeTestRule: ComposeContentTestRule
         composeTestRule.onNodeWithTag("CustomItemNameInput").performTextInput(name)
     }
 
+    fun enterCustomItemQty(qty: String) {
+        composeTestRule.onNodeWithTag("CustomItemQtyInput").performTextReplacement(qty)
+    }
+
+    fun assertCustomItemQty(qty: String) {
+        // hasText is more robust for TextFields with labels/hints
+        composeTestRule.onNodeWithTag("CustomItemQtyInput").assert(hasText(qty))
+    }
+
+    fun selectCategoryInCustomDialog(category: ItemCategory) {
+        composeTestRule.onNodeWithTag("CustomItemCategorySelector").performClick()
+        composeTestRule.onNodeWithText(category.name).performClick()
+    }
+
     fun clickConfirmAddCustomItem() {
         composeTestRule.onNodeWithTag("ConfirmAddCustomItem").performClick()
     }
@@ -52,7 +67,38 @@ class TripDetailsScreenRobot(private val composeTestRule: ComposeContentTestRule
 
     fun assertQuantity(itemName: String, qty: Int) {
         composeTestRule.onNodeWithTag("ItemQuantity_$itemName", useUnmergedTree = true)
-            .assertTextEquals("Quantity: $qty")
+            .assertTextEquals("Qty: $qty")
+    }
+
+    fun assertCategory(itemName: String, category: ItemCategory) {
+        // In edit mode, it's a selector, in normal mode it's a label
+        composeTestRule.onNode(hasText(category.name) and hasAnyAncestor(hasTestTag("TripItemRow_$itemName")), useUnmergedTree = true)
+            .assertIsDisplayed()
+    }
+
+    fun changeCategory(itemName: String, newCategory: ItemCategory) {
+        composeTestRule.onNodeWithTag("CategorySelector_$itemName", useUnmergedTree = true).performClick()
+        composeTestRule.onNodeWithText(newCategory.name).performClick()
+    }
+
+    fun clickDatePicker() {
+        composeTestRule.onNodeWithTag("DatePickerButton").performClick()
+    }
+
+    fun assertDatePickerIsDisplayed() {
+        composeTestRule.onNodeWithTag("UpdateDatesConfirm").assertIsDisplayed()
+    }
+
+    fun clickUpdateDates() {
+        composeTestRule.onNodeWithTag("UpdateDatesConfirm").performClick()
+    }
+
+    fun assertDeleteDialogIsDisplayed() {
+        composeTestRule.onNodeWithTag("ConfirmDeleteTrip").assertIsDisplayed()
+    }
+
+    fun assertEditModeButtonExists() {
+        composeTestRule.onNodeWithTag("EditModeButton").assertExists()
     }
 }
 

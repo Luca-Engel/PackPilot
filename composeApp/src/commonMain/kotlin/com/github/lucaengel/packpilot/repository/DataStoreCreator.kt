@@ -7,7 +7,7 @@ import okio.Path.Companion.toPath
 
 fun createDataStore(producePath: () -> String): DataStore<Preferences> =
     PreferenceDataStoreFactory.createWithPath(
-        produceFile = { producePath().toPath() }
+        produceFile = { producePath().toPath() },
     )
 
 const val DATA_STORE_FILE_NAME = "packpilot.preferences_pb"

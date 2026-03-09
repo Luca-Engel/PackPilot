@@ -52,7 +52,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.github.lucaengel.packpilot.model.ItemCategory
 import com.github.lucaengel.packpilot.model.ItemSource
+import com.github.lucaengel.packpilot.ui.components.CategorySelector
 import com.github.lucaengel.packpilot.ui.components.ImprovedTripItemRow
 import com.github.lucaengel.packpilot.ui.components.SectionHeader
 import com.github.lucaengel.packpilot.viewmodel.PackingViewModel
@@ -195,7 +197,7 @@ fun TripDetailsScreen(
             }
 
             if (essentialItems.isNotEmpty()) {
-                item { SectionHeader("Essential Clothes") }
+                item { SectionHeader("Essential Items") }
                 items(essentialItems) { item -> ImprovedTripItemRow(item, tripId, viewModel, isEditMode) }
             }
 
@@ -247,6 +249,7 @@ fun TripDetailsScreen(
     if (showAddCustomDialog) {
         var name by remember { mutableStateOf("") }
         var qty by remember { mutableStateOf("1") }
+        var category by remember { mutableStateOf(ItemCategory.OTHER) }
         AlertDialog(
             onDismissRequest = { showAddCustomDialog = false },
             title = { Text("Add Custom Item") },
@@ -266,12 +269,21 @@ fun TripDetailsScreen(
                             qty = it
                         }
                     }, label = { Text("Quantity") }, modifier = Modifier.testTag("CustomItemQtyInput"))
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Category: ", style = MaterialTheme.typography.bodyMedium)
+                        CategorySelector(
+                            currentCategory = category,
+                            onCategorySelected = { category = it },
+                            modifier = Modifier.testTag("CustomItemCategorySelector")
+                        )
+                    }
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
                     if (name.isNotEmpty()) {
-                        viewModel.addCustomItemToTrip(tripId, name, qty.toIntOrNull() ?: 1)
+                        viewModel.addCustomItemToTrip(tripId, name, qty.toIntOrNull() ?: 1, category)
                         showAddCustomDialog = false
                     }
                 }, modifier = Modifier.testTag("ConfirmAddCustomItem")) { Text("Add") }
