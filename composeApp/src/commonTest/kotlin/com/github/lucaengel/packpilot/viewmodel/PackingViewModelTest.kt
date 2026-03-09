@@ -9,9 +9,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.*
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PackingViewModelTest {
@@ -161,4 +159,197 @@ class PackingViewModelTest {
                 cancelAndIgnoreRemainingEvents()
             }
         }
+
+    @Test
+    fun testUndoAndRedo() = runTest {
+        val fakeDataStore = FakeDataStoreManager()
+        val repository = PackingRepository(fakeDataStore, backgroundScope)
+        val viewModel = PackingViewModel(repository)
+
+        waitForInitialization(viewModel)
+
+        // Initial state: nothing done yet. Undo/Redo should be false.
+        assertEquals(false, viewModel.canUndo.value)
+        assertEquals(false, viewModel.canRedo.value)
+
+        // Try calling undo/redo on empty stacks (testing early return branches)
+        viewModel.undo()
+        viewModel.redo()
+
+        // perform action: add general item
+        viewModel.addGeneralItem("UndoItem", 1, false)
+
+        // Wait for it
+        viewModel.observeGeneralItems().test {
+            var items = awaitItem()
+            while (items.none { it.name == "UndoItem" }) {
+                items = awaitItem()
+            }
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertTrue(viewModel.canUndo.value)
+        assertFalse(viewModel.canRedo.value)
+
+        // Undo
+        viewModel.undo()
+        assertTrue(viewModel.canRedo.value)
+
+        viewModel.observeGeneralItems().test {
+            var items = awaitItem()
+            while (items.any { it.name == "UndoItem" }) {
+                items = awaitItem()
+            }
+            assertTrue(items.none { it.name == "UndoItem" })
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        // Redo
+        viewModel.redo()
+        assertTrue(viewModel.canUndo.value)
+
+        viewModel.observeGeneralItems().test {
+            var items = awaitItem()
+            while (items.none { it.name == "UndoItem" }) {
+                items = awaitItem()
+            }
+            assertTrue(items.any { it.name == "UndoItem" })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun testDeleteTrip() = runTest {
+        val fakeDataStore = FakeDataStoreManager()
+        val repository = PackingRepository(fakeDataStore, backgroundScope)
+        val viewModel = PackingViewModel(repository)
+
+        val list = waitForInitialization(viewModel)
+        viewModel.createTrip("TripToDelete", list.id, LocalDate(2024, 1, 1), LocalDate(2024, 1, 1))
+
+        viewModel.trips.test {
+            var trips = awaitItem()
+            while (trips.values.none { it.title == "TripToDelete" }) {
+                trips = awaitItem()
+            }
+            val tripId = trips.values.find { it.title == "TripToDelete" }!!.id
+
+            viewModel.deleteTrip(tripId)
+
+            trips = awaitItem()
+            while (trips.containsKey(tripId)) {
+                trips = awaitItem()
+            }
+            assertFalse(trips.containsKey(tripId))
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun testRemoveTripItem() = runTest {
+        val fakeDataStore = FakeDataStoreManager()
+        val repository = PackingRepository(fakeDataStore, backgroundScope)
+        val viewModel = PackingViewModel(repository)
+
+        val list = waitForInitialization(viewModel)
+        viewModel.createTrip("TripToRemoveItem", list.id, LocalDate(2024, 1, 1), LocalDate(2024, 1, 1))
+
+        viewModel.trips.test {
+            var trips = awaitItem()
+            while (trips.values.none { it.title == "TripToRemoveItem" } || trips.values.first().items.isEmpty()) {
+                trips = awaitItem()
+            }
+            val tripId = trips.values.find { it.title == "TripToRemoveItem" }!!.id
+            val itemId = trips[tripId]!!.items.first().id
+
+            viewModel.removeTripItem(tripId, itemId)
+
+            trips = awaitItem()
+            while (trips[tripId]?.items?.any { it.id == itemId } == true) {
+                trips = awaitItem()
+            }
+            assertFalse(trips[tripId]!!.items.any { it.id == itemId })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun testRemoveItemFromTripType() = runTest {
+        val fakeDataStore = FakeDataStoreManager()
+        val repository = PackingRepository(fakeDataStore, backgroundScope)
+        val viewModel = PackingViewModel(repository)
+
+        waitForInitialization(viewModel)
+        viewModel.createNewTripType("TypeToRemove")
+
+        viewModel.lists.test {
+            var lists = awaitItem()
+            while (lists.values.none { it.title == "TypeToRemove" }) {
+                lists = awaitItem()
+            }
+            val listId = lists.values.find { it.title == "TypeToRemove" }!!.id
+            
+            viewModel.addItemToTripType(listId, "ItemToRemove", 1, false)
+            
+            // Wait for item
+            viewModel.observeItemsForList(listId).test {
+                var items = awaitItem()
+                while (items.none { it.name == "ItemToRemove" }) {
+                    items = awaitItem()
+                }
+                val itemId = items.find { it.name == "ItemToRemove" }!!.id
+                
+                viewModel.removeItemFromTripType(listId, itemId)
+                
+                items = awaitItem()
+                while (items.any { it.id == itemId }) {
+                    items = awaitItem()
+                }
+                assertTrue(items.none { it.id == itemId })
+                cancelAndIgnoreRemainingEvents()
+            }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun testToggleBaseItemPerDay() = runTest {
+        val fakeDataStore = FakeDataStoreManager()
+        val repository = PackingRepository(fakeDataStore, backgroundScope)
+        val viewModel = PackingViewModel(repository)
+
+        waitForInitialization(viewModel)
+        viewModel.addGeneralItem("PerDayItem", 1, false)
+
+        viewModel.observeGeneralItems().test {
+            var items = awaitItem()
+            while (items.none { it.name == "PerDayItem" }) {
+                items = awaitItem()
+            }
+            val itemId = items.find { it.name == "PerDayItem" }!!.id
+            assertEquals(false, items.find { it.id == itemId }?.isPerDay)
+
+            viewModel.toggleBaseItemPerDay(itemId)
+
+            items = awaitItem()
+            while (items.find { it.id == itemId }?.isPerDay != true) {
+                items = awaitItem()
+            }
+            assertTrue(items.find { it.id == itemId }?.isPerDay == true)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun testGetLists() = runTest {
+        val fakeDataStore = FakeDataStoreManager()
+        val repository = PackingRepository(fakeDataStore, backgroundScope)
+        val viewModel = PackingViewModel(repository)
+
+        waitForInitialization(viewModel)
+        
+        // Mock data initialization adds one general list
+        val lists = viewModel.getLists()
+        assertTrue(lists.any { it.isGeneral })
+    }
 }
