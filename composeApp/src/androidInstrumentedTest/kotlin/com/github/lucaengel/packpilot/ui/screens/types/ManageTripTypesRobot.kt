@@ -35,6 +35,18 @@ class ManageTripTypesRobot(private val composeTestRule: ComposeContentTestRule) 
         composeTestRule.onNodeWithTag("ItemNameInput").performTextInput(name)
     }
 
+    fun enterItemQuantity(qty: String) {
+        composeTestRule.onNodeWithTag("ItemQtyInput").performTextReplacement(qty)
+    }
+
+    fun enterItemQuantityPerDays(qty: String) {
+        composeTestRule.onNodeWithTag("ItemQtyPerDaysInput").performTextReplacement(qty)
+    }
+
+    fun clickPerDayCheckbox() {
+        composeTestRule.onNodeWithTag("PerDayCheckbox").performClick()
+    }
+
     fun selectCategoryInAddDialog(category: ItemCategory) {
         composeTestRule.onNodeWithTag("AddItemCategorySelector").performClick()
         composeTestRule.onNodeWithText(category.displayName).performClick()
@@ -52,6 +64,14 @@ class ManageTripTypesRobot(private val composeTestRule: ComposeContentTestRule) 
     fun assertItemInType(itemName: String) {
         composeTestRule.waitUntilExactlyOneExists(hasTestTag("BaseItemRow_$itemName"), timeoutMillis = 5000)
         composeTestRule.onNodeWithTag("BaseItemRow_$itemName").assertIsDisplayed()
+    }
+
+    fun assertQuantity(name: String, qty: Int) {
+        composeTestRule.onNodeWithTag("BaseQtyText_$name", useUnmergedTree = true).assertTextEquals("$qty")
+    }
+
+    fun assertQuantityPerDays(name: String, qty: Int) {
+        composeTestRule.onNodeWithTag("BaseQtyPerDaysText_$name", useUnmergedTree = true).assertTextEquals("$qty")
     }
 
     @OptIn(ExperimentalTestApi::class)

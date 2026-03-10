@@ -72,7 +72,7 @@ class PackingViewModelTest {
 
             val startDate = LocalDate(2024, 1, 1)
             
-            // Trip length: 5 days. Result: ceil(5 * 5/6) = 5
+            // Trip length: 5 days. Result: ceil(5 * 5/6) = ceil(4.16) = 5
             viewModel.createTrip("Trip 5 days", generalList.id, startDate, startDate.plus(4, DateTimeUnit.DAY))
 
             viewModel.trips.test {
@@ -84,7 +84,7 @@ class PackingViewModelTest {
                 val tshirts = trip.items.find { it.name == "T-shirts" }
                 assertEquals(5, tshirts?.quantity, "5 T-shirts for 5 days with 5/6 rule")
 
-                // Trip length: 3 days. Result: ceil(3 * 5/6) = 3
+                // Trip length: 3 days. Result: ceil(3 * 5/6) = ceil(2.5) = 3
                 viewModel.createTrip("Trip 3 days", generalList.id, startDate, startDate.plus(2, DateTimeUnit.DAY))
                 trips = awaitItem()
                 while (trips.values.none { it.title == "Trip 3 days" }) {
@@ -93,6 +93,46 @@ class PackingViewModelTest {
                 val trip3 = trips.values.find { it.title == "Trip 3 days" }!!
                 val tshirts3 = trip3.items.find { it.name == "T-shirts" }
                 assertEquals(3, tshirts3?.quantity, "3 T-shirts for 3 days with 5/6 rule")
+
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun testUpdateTripDatesWithRatioRule() =
+        runTest {
+            val fakeDataStore = FakeDataStoreManager()
+            val repository = PackingRepository(fakeDataStore, backgroundScope)
+            val viewModel = PackingViewModel(repository)
+
+            val generalList = waitForInitialization(viewModel)
+
+            // 1 item per 3 days
+            viewModel.addGeneralItem("Jacket", 1, true, quantityPerDays = 3)
+
+            val start = LocalDate(2024, 1, 1)
+            viewModel.createTrip("RatioTest", generalList.id, start, start) // 1 day -> ceil(1 * 1/3) = 1
+
+            viewModel.trips.test {
+                var trips = awaitItem()
+                while (trips.values.none { it.title == "RatioTest" } || trips.values.first().items.isEmpty()) {
+                    trips = awaitItem()
+                }
+
+                val tripId = trips.values.find { it.title == "RatioTest" }!!.id
+                val jacket = trips[tripId]?.items?.find { it.name == "Jacket" }
+                assertEquals(1, jacket?.quantity)
+
+                // Update to 7 days -> ceil(7 * 1/3) = 3
+                viewModel.updateTripDates(tripId, start, start.plus(6, DateTimeUnit.DAY))
+
+                var updatedTrips = awaitItem()
+                var updatedJacket = updatedTrips[tripId]?.items?.find { it.name == "Jacket" }
+                while (updatedJacket?.quantity != 3) {
+                    updatedTrips = awaitItem()
+                    updatedJacket = updatedTrips[tripId]?.items?.find { it.name == "Jacket" }
+                }
+                assertEquals(3, updatedJacket?.quantity)
 
                 cancelAndIgnoreRemainingEvents()
             }

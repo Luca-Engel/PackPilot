@@ -40,6 +40,33 @@ class GeneralItemsScreenTest {
         }
 
     @Test
+    fun addingNewEssentialItemWithRatioRule() =
+        runTest {
+            val repository = PackingRepository(FakeDataStoreManager(), backgroundScope)
+            val viewModel = PackingViewModel(repository)
+
+            composeTestRule.setContent {
+                GeneralItemsScreen(
+                    viewModel = viewModel,
+                    onBack = {},
+                )
+            }
+
+            generalItemsScreenRobot(composeTestRule) {
+                clickAddEssential()
+                enterEssentialName("T-Shirts")
+                enterEssentialQuantity("5")
+                clickPerDayCheckbox()
+                enterEssentialQuantityPerDays("6")
+                clickConfirmAdd()
+
+                assertEssentialExists("T-Shirts")
+                assertQuantity("T-Shirts", 5)
+                assertQuantityPerDays("T-Shirts", 6)
+            }
+        }
+
+    @Test
     fun increasingQuantityUpdatesDisplay() =
         runTest {
             val repository = PackingRepository(FakeDataStoreManager(), backgroundScope)
@@ -57,6 +84,27 @@ class GeneralItemsScreenTest {
                 assertQuantity("T-Shirt", 3)
                 clickIncreaseQuantity("T-Shirt")
                 assertQuantity("T-Shirt", 4)
+            }
+        }
+
+    @Test
+    fun increasingQuantityPerDaysUpdatesDisplay() =
+        runTest {
+            val repository = PackingRepository(FakeDataStoreManager(), backgroundScope)
+            val viewModel = PackingViewModel(repository)
+            viewModel.addGeneralItem("Socks", 1, true, quantityPerDays = 2)
+
+            composeTestRule.setContent {
+                GeneralItemsScreen(
+                    viewModel = viewModel,
+                    onBack = {},
+                )
+            }
+
+            generalItemsScreenRobot(composeTestRule) {
+                assertQuantityPerDays("Socks", 2)
+                clickIncreaseQuantityPerDays("Socks")
+                assertQuantityPerDays("Socks", 3)
             }
         }
 

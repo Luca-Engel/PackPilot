@@ -12,7 +12,10 @@ import com.github.lucaengel.packpilot.viewmodel.PackingViewModel
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import org.junit.Rule
 import org.junit.Test
@@ -53,6 +56,35 @@ class TripDetailsScreenTest {
                 clickConfirmAddCustomItem()
 
                 assertItemExists("Umbrella")
+            }
+        }
+
+    @Test
+    fun tripItemQuantityFollowsRatioRule() =
+        runTest {
+            val testScope = TestScope()
+            val repository = PackingRepository(FakeDataStoreManager(), testScope)
+            val viewModel = PackingViewModel(repository)
+
+            val today = LocalDate(2024, 1, 1)
+            
+            // Add template item: 5 items per 6 days
+            viewModel.addGeneralItem("T-Shirts", 5, true, quantityPerDays = 6)
+            
+            // 5-day trip -> ceil(5 * 5/6) = 5
+            viewModel.createTrip("RatioTrip", "city", today, today.plus(4, DateTimeUnit.DAY))
+            val tripId = viewModel.trips.value.values.find { it.title == "RatioTrip" }!!.id
+
+            composeTestRule.setContent {
+                TripDetailsScreen(
+                    viewModel = viewModel,
+                    tripId = tripId,
+                    onBack = {},
+                )
+            }
+
+            tripDetailsScreenRobot(composeTestRule) {
+                assertQuantity("T-Shirts", 5)
             }
         }
 

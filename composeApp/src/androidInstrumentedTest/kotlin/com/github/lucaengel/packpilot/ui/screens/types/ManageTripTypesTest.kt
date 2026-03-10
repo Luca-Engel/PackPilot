@@ -42,4 +42,36 @@ class ManageTripTypesTest {
             assertItemInType("Skis")
         }
     }
+
+    @Test
+    fun addingItemWithRatioRule() {
+        val testScope = TestScope()
+        val repository = PackingRepository(FakeDataStoreManager(), testScope)
+        val viewModel = PackingViewModel(repository)
+
+        composeTestRule.setContent {
+            ManageTripTypesScreen(
+                viewModel = viewModel,
+                onBack = {}
+            )
+        }
+
+        manageTripTypesRobot(composeTestRule) {
+            clickNewType()
+            enterTypeName("Business")
+            clickCreateType()
+            selectType("Business")
+            
+            clickAddItemToType()
+            enterItemName("Suits")
+            enterItemQuantity("1")
+            clickPerDayCheckbox()
+            enterItemQuantityPerDays("3")
+            clickAdd()
+            
+            assertItemInType("Suits")
+            assertQuantity("Suits", 1)
+            assertQuantityPerDays("Suits", 3)
+        }
+    }
 }
