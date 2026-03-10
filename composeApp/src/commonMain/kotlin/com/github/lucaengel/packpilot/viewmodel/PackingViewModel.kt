@@ -334,7 +334,7 @@ class PackingViewModel(
 
     fun removeGeneralItem(itemId: String) {
         recordHistory()
-        val generalList = lists.value.values.find { it.isGeneral } ?: return
+        val generalList = lists.value.values.find { it.isGeneral } ?: return@removeGeneralItem
         repository.addList(generalList.copy(itemIds = generalList.itemIds - itemId))
     }
 
@@ -364,21 +364,27 @@ class PackingViewModel(
             list.itemIds.mapNotNull { itemsMap[it] }
         }
 
+    /**
+     * Observes the sections for a trip, grouped by source and then category.
+     *
+     * Groups once to avoid repeated filtering of the same list, which is unnecessarily O(sources × categories × items) per emission.
+     */
     fun observeTripSections(tripId: String): Flow<List<SourceSection>> =
         trips.map { tripsMap ->
-            val trip = tripsMap[tripId] ?: return@map emptyList<SourceSection>()
+            val trip = tripsMap[tripId] ?: return@map emptyList()
 
             val sourceOrder = listOf(ItemSource.ESSENTIAL, ItemSource.ACTIVITY, ItemSource.CUSTOM)
-            val categoryOrder = ItemCategory.entries.toList()
+            val categoryOrder = ItemCategory.entries
+
+            val itemsBySource = trip.items.groupBy { it.source }
 
             sourceOrder.mapNotNull { source ->
-                val itemsInSource = trip.items.filter { it.source == source }
-                if (itemsInSource.isEmpty()) return@mapNotNull null
+                val itemsInSource = itemsBySource[source] ?: return@mapNotNull null
+                val itemsByCategory = itemsInSource.groupBy { it.category }
 
                 val categories =
                     categoryOrder.mapNotNull { category ->
-                        val itemsInCategory = itemsInSource.filter { it.category == category }
-                        if (itemsInCategory.isEmpty()) return@mapNotNull null
+                        val itemsInCategory = itemsByCategory[category] ?: return@mapNotNull null
                         CategorySection(category, itemsInCategory)
                     }
 

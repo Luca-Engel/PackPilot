@@ -114,7 +114,7 @@ fun ImprovedTripItemRow(
                             modifier = Modifier.padding(start = 8.dp, top = 4.dp),
                         ) {
                             Text(
-                                tripItem.category.name.lowercase().replaceFirstChar { it.uppercase() },
+                                tripItem.category.displayName,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -173,7 +173,7 @@ fun CategorySelector(
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
             ) {
                 Text(
-                    currentCategory.name.lowercase().replaceFirstChar { it.uppercase() },
+                    currentCategory.displayName,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
@@ -192,7 +192,7 @@ fun CategorySelector(
         ) {
             ItemCategory.entries.forEach { category ->
                 DropdownMenuItem(
-                    text = { Text(category.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                    text = { Text(category.displayName) },
                     onClick = {
                         onCategorySelected(category)
                         expanded = false

@@ -207,13 +207,13 @@ class TripDetailsScreenTest {
 
         tripDetailsScreenRobot(composeTestRule) {
             assertSourceHeaderExists("Essential Items")
-            assertCategoryHeaderExists(ItemCategory.CLOTHING)
+            assertCategoryHeaderExists(ItemSource.ESSENTIAL, ItemCategory.CLOTHING)
             assertItemExists("Underwear")
-            assertCategoryHeaderExists(ItemCategory.TOILETRIES)
+            assertCategoryHeaderExists(ItemSource.ESSENTIAL, ItemCategory.TOILETRIES)
             assertItemExists("Toothbrush")
 
             assertSourceHeaderExists("Added for this trip")
-            assertCategoryHeaderExists(ItemCategory.OTHER)
+            assertCategoryHeaderExists(ItemSource.CUSTOM, ItemCategory.OTHER)
             assertItemExists("Umbrella")
         }
     }

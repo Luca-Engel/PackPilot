@@ -211,7 +211,7 @@ fun TripDetailsScreen(
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp).testTag("CategoryHeader_${categorySection.category.name}")
+                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp).testTag("CategoryHeader_${sourceSection.source.name}_${categorySection.category.name}")
                         )
                     }
                     items(categorySection.items) { item ->

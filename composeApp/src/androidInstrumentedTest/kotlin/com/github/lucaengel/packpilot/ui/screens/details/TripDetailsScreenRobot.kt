@@ -3,6 +3,7 @@ package com.github.lucaengel.packpilot.ui.screens.details
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import com.github.lucaengel.packpilot.model.ItemCategory
+import com.github.lucaengel.packpilot.model.ItemSource
 
 class TripDetailsScreenRobot(
     private val composeTestRule: ComposeContentTestRule,
@@ -119,8 +120,8 @@ class TripDetailsScreenRobot(
         composeTestRule.onNodeWithText(title).assertIsDisplayed()
     }
 
-    fun assertCategoryHeaderExists(category: ItemCategory) {
-        composeTestRule.onNodeWithTag("CategoryHeader_${category.name}").assertIsDisplayed()
+    fun assertCategoryHeaderExists(source: ItemSource, category: ItemCategory) {
+        composeTestRule.onNodeWithTag("CategoryHeader_${source.name}_${category.name}").assertIsDisplayed()
     }
 }
 
