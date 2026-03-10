@@ -25,6 +25,7 @@ data class PackingItem(
     val name: String,
     val baseQuantity: Int = 1,
     val isPerDay: Boolean = false,
+    val quantityPerDays: Int = 1,
     val category: ItemCategory = ItemCategory.OTHER,
 )
 

@@ -59,6 +59,46 @@ class PackingViewModelTest {
         }
 
     @Test
+    fun testCreateTripWithRatioRule() =
+        runTest {
+            val fakeDataStore = FakeDataStoreManager()
+            val repository = PackingRepository(fakeDataStore, backgroundScope)
+            val viewModel = PackingViewModel(repository)
+
+            val generalList = waitForInitialization(viewModel)
+
+            // Setup test item: 5 T-shirts per 6 days
+            viewModel.addGeneralItem("T-shirts", 5, true, quantityPerDays = 6)
+
+            val startDate = LocalDate(2024, 1, 1)
+            
+            // Trip length: 5 days. Result: ceil(5 * 5/6) = 5
+            viewModel.createTrip("Trip 5 days", generalList.id, startDate, startDate.plus(4, DateTimeUnit.DAY))
+
+            viewModel.trips.test {
+                var trips = awaitItem()
+                while (trips.values.none { it.title == "Trip 5 days" }) {
+                    trips = awaitItem()
+                }
+                val trip = trips.values.find { it.title == "Trip 5 days" }!!
+                val tshirts = trip.items.find { it.name == "T-shirts" }
+                assertEquals(5, tshirts?.quantity, "5 T-shirts for 5 days with 5/6 rule")
+
+                // Trip length: 3 days. Result: ceil(3 * 5/6) = 3
+                viewModel.createTrip("Trip 3 days", generalList.id, startDate, startDate.plus(2, DateTimeUnit.DAY))
+                trips = awaitItem()
+                while (trips.values.none { it.title == "Trip 3 days" }) {
+                    trips = awaitItem()
+                }
+                val trip3 = trips.values.find { it.title == "Trip 3 days" }!!
+                val tshirts3 = trip3.items.find { it.name == "T-shirts" }
+                assertEquals(3, tshirts3?.quantity, "3 T-shirts for 3 days with 5/6 rule")
+
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
     fun testUpdateTripDatesRecomputesQuantities() =
         runTest {
             val fakeDataStore = FakeDataStoreManager()

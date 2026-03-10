@@ -77,6 +77,7 @@ fun GeneralItemsScreen(
                     BaseTemplateItemRow(
                         item = item,
                         onUpdateQuantity = { viewModel.updateBaseItemQuantity(item.id, it) },
+                        onUpdateQuantityPerDays = { viewModel.updateBaseItemQuantityPerDays(item.id, it) },
                         onTogglePerDay = { viewModel.toggleBaseItemPerDay(item.id) },
                         onUpdateCategory = { viewModel.updateBaseItemCategory(item.id, it) },
                         onDelete = { viewModel.removeGeneralItem(item.id) },
@@ -89,6 +90,7 @@ fun GeneralItemsScreen(
     if (showAddDialog) {
         var name by remember { mutableStateOf("") }
         var qty by remember { mutableStateOf("1") }
+        var qtyPerDays by remember { mutableStateOf("1") }
         var isPerDay by remember { mutableStateOf(false) }
         var category by remember { mutableStateOf(ItemCategory.OTHER) }
         AlertDialog(
@@ -117,6 +119,15 @@ fun GeneralItemsScreen(
                         Text("Per Day")
                     }
 
+                    if (isPerDay) {
+                        TextField(
+                            value = qtyPerDays,
+                            onValueChange = { if (it.all { c -> c.isDigit() }) qtyPerDays = it },
+                            label = { Text("Per how many days?") },
+                            modifier = Modifier.testTag("EssentialItemQtyPerDaysInput"),
+                        )
+                    }
+
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("Category: ", style = MaterialTheme.typography.bodyMedium)
                         CategorySelector(
@@ -130,7 +141,13 @@ fun GeneralItemsScreen(
             confirmButton = {
                 TextButton(onClick = {
                     if (name.isNotEmpty()) {
-                        viewModel.addGeneralItem(name, qty.toIntOrNull() ?: 1, isPerDay, category)
+                        viewModel.addGeneralItem(
+                            name,
+                            qty.toIntOrNull() ?: 1,
+                            isPerDay,
+                            category,
+                            qtyPerDays.toIntOrNull() ?: 1
+                        )
                         showAddDialog = false
                     }
                 }, modifier = Modifier.testTag("ConfirmAddEssential")) { Text("Add") }
