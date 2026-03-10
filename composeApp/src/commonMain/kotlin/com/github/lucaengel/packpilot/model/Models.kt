@@ -63,6 +63,7 @@ data class Trip(
     val items: List<TripItem> = emptyList(),
     val baseListId: String? = null,
     val activityTitle: String = "",
+    val maxDaysBetweenWashes: Int? = null,
 ) {
     val days: Int get() = (endDate.toEpochDays() - startDate.toEpochDays() + 1).coerceAtLeast(1)
 }

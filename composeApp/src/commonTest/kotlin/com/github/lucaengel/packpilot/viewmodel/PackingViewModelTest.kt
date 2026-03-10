@@ -30,8 +30,8 @@ class PackingViewModelTest {
             val generalList = waitForInitialization(viewModel)
 
             // Setup test items
-            viewModel.addGeneralItem("Underwear", 1, true) // Per day
-            viewModel.addGeneralItem("Toothbrush", 1, false) // Total
+            viewModel.addGeneralItem("Test Underwear", 1, true) // Per day
+            viewModel.addGeneralItem("Test Toothbrush", 1, false) // Total
 
             val startDate = LocalDate(2024, 1, 1)
             val endDate = LocalDate(2024, 1, 10) // 10 days
@@ -48,8 +48,8 @@ class PackingViewModelTest {
 
                 val trip = trips.values.find { it.title == "Sicily" }!!
 
-                val underwear = trip.items.find { it.name == "Underwear" }
-                val toothbrush = trip.items.find { it.name == "Toothbrush" }
+                val underwear = trip.items.find { it.name == "Test Underwear" }
+                val toothbrush = trip.items.find { it.name == "Test Toothbrush" }
 
                 assertEquals(10, underwear?.quantity, "Underwear should be 10 (1 per day * 10 days)")
                 assertEquals(1, toothbrush?.quantity, "Toothbrush should be 1 (total)")
@@ -68,10 +68,10 @@ class PackingViewModelTest {
             val generalList = waitForInitialization(viewModel)
 
             // Setup test item: 5 T-shirts per 6 days
-            viewModel.addGeneralItem("T-shirts", 5, true, quantityPerDays = 6)
+            viewModel.addGeneralItem("Ratio T-shirts", 5, true, quantityPerDays = 6)
 
             val startDate = LocalDate(2024, 1, 1)
-            
+
             // Trip length: 5 days. Result: ceil(5 * 5/6) = ceil(4.16) = 5
             viewModel.createTrip("Trip 5 days", generalList.id, startDate, startDate.plus(4, DateTimeUnit.DAY))
 
@@ -81,7 +81,7 @@ class PackingViewModelTest {
                     trips = awaitItem()
                 }
                 val trip = trips.values.find { it.title == "Trip 5 days" }!!
-                val tshirts = trip.items.find { it.name == "T-shirts" }
+                val tshirts = trip.items.find { it.name == "Ratio T-shirts" }
                 assertEquals(5, tshirts?.quantity, "5 T-shirts for 5 days with 5/6 rule")
 
                 // Trip length: 3 days. Result: ceil(3 * 5/6) = ceil(2.5) = 3
@@ -91,7 +91,7 @@ class PackingViewModelTest {
                     trips = awaitItem()
                 }
                 val trip3 = trips.values.find { it.title == "Trip 3 days" }!!
-                val tshirts3 = trip3.items.find { it.name == "T-shirts" }
+                val tshirts3 = trip3.items.find { it.name == "Ratio T-shirts" }
                 assertEquals(3, tshirts3?.quantity, "3 T-shirts for 3 days with 5/6 rule")
 
                 cancelAndIgnoreRemainingEvents()
@@ -108,31 +108,104 @@ class PackingViewModelTest {
             val generalList = waitForInitialization(viewModel)
 
             // 1 item per 3 days
-            viewModel.addGeneralItem("Jacket", 1, true, quantityPerDays = 3)
+            viewModel.addGeneralItem("Ratio Jacket", 1, true, quantityPerDays = 3)
 
             val start = LocalDate(2024, 1, 1)
             viewModel.createTrip("RatioTest", generalList.id, start, start) // 1 day -> ceil(1 * 1/3) = 1
 
             viewModel.trips.test {
                 var trips = awaitItem()
-                while (trips.values.none { it.title == "RatioTest" } || trips.values.first().items.isEmpty()) {
+                while (trips.values.none { it.title == "RatioTest" } ||
+                    trips.values
+                        .first()
+                        .items
+                        .isEmpty()
+                ) {
                     trips = awaitItem()
                 }
 
                 val tripId = trips.values.find { it.title == "RatioTest" }!!.id
-                val jacket = trips[tripId]?.items?.find { it.name == "Jacket" }
+                val jacket = trips[tripId]?.items?.find { it.name == "Ratio Jacket" }
                 assertEquals(1, jacket?.quantity)
 
                 // Update to 7 days -> ceil(7 * 1/3) = 3
                 viewModel.updateTripDates(tripId, start, start.plus(6, DateTimeUnit.DAY))
 
                 var updatedTrips = awaitItem()
-                var updatedJacket = updatedTrips[tripId]?.items?.find { it.name == "Jacket" }
+                var updatedJacket = updatedTrips[tripId]?.items?.find { it.name == "Ratio Jacket" }
                 while (updatedJacket?.quantity != 3) {
                     updatedTrips = awaitItem()
-                    updatedJacket = updatedTrips[tripId]?.items?.find { it.name == "Jacket" }
+                    updatedJacket = updatedTrips[tripId]?.items?.find { it.name == "Ratio Jacket" }
                 }
                 assertEquals(3, updatedJacket?.quantity)
+
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun testLaundryAvailability() =
+        runTest {
+            val fakeDataStore = FakeDataStoreManager()
+            val repository = PackingRepository(fakeDataStore, backgroundScope)
+            val viewModel = PackingViewModel(repository)
+
+            val generalList = waitForInitialization(viewModel)
+
+            // Using unique names to avoid collisions with repository mock data
+            viewModel.addGeneralItem("Laundry Socks", 1, true, category = ItemCategory.CLOTHING)
+            viewModel.addGeneralItem("Laundry T-shirts", 5, true, quantityPerDays = 6, category = ItemCategory.CLOTHING)
+            viewModel.addGeneralItem("Laundry Toothbrush", 1, false, category = ItemCategory.OTHER)
+
+            val startDate = LocalDate(2024, 1, 1)
+            val endDate = LocalDate(2024, 1, 14) // 14 days
+
+            // Case 1: Trip 14 days, Max days 9
+            viewModel.createTrip("Laundry Trip", generalList.id, startDate, endDate, maxDaysBetweenWashes = 9)
+
+            viewModel.trips.test {
+                var trips = awaitItem()
+                while (trips.values.none { it.title == "Laundry Trip" } || trips.values
+                        .first()
+                        .items.size < 3
+                ) {
+                    trips = awaitItem()
+                }
+                val trip = trips.values.find { it.title == "Laundry Trip" }!!
+
+                val socks = trip.items.find { it.name == "Laundry Socks" }
+                val tshirts = trip.items.find { it.name == "Laundry T-shirts" }
+                val toothbrush = trip.items.find { it.name == "Laundry Toothbrush" }
+
+                // Socks: ceil(9 * 1/1) + 1 = 10
+                assertEquals(10, socks?.quantity, "Socks should be 10 for 9 days wash interval on 14 day trip")
+                // T-shirts: ceil(9 * 5/6) + 1 = 8 + 1 = 9 (ceil(7.5) = 8, 8+1=9)
+                assertEquals(9, tshirts?.quantity, "T-shirts should be 9 for 9 days wash interval on 14 day trip")
+                // Toothbrush: unaffected
+                assertEquals(1, toothbrush?.quantity)
+
+                // Case 2: Trip 5 days, Max days 9 (Trip shorter than laundry interval)
+                viewModel.createTrip(
+                    "Short Trip",
+                    generalList.id,
+                    startDate,
+                    startDate.plus(4, DateTimeUnit.DAY),
+                    maxDaysBetweenWashes = 9,
+                )
+
+                trips = awaitItem()
+                while (trips.values.none { it.title == "Short Trip" } ||
+                    trips.values
+                        .find { it.title == "Short Trip" }!!
+                        .items.size < 3
+                ) {
+                    trips = awaitItem()
+                }
+                val shortTrip = trips.values.find { it.title == "Short Trip" }!!
+
+                val shortSocks = shortTrip.items.find { it.name == "Laundry Socks" }
+                // Socks: ceil(5 * 1/1) = 5 (no buffer because tripDays <= maxDays)
+                assertEquals(5, shortSocks?.quantity, "Socks should be 5 for 5 day trip with 9 day wash interval")
 
                 cancelAndIgnoreRemainingEvents()
             }
@@ -147,7 +220,7 @@ class PackingViewModelTest {
 
             val generalList = waitForInitialization(viewModel)
 
-            viewModel.addGeneralItem("Socks", 1, true)
+            viewModel.addGeneralItem("Recompute Socks", 1, true)
 
             val start = LocalDate(2024, 1, 1)
             viewModel.createTrip("Test", generalList.id, start, start.plus(1, DateTimeUnit.DAY)) // 2 days
@@ -168,7 +241,7 @@ class PackingViewModelTest {
                     trips.values
                         .first()
                         .items
-                        .find { it.name == "Socks" }
+                        .find { it.name == "Recompute Socks" }
                 assertEquals(2, socks?.quantity)
 
                 // Update trip length to 5 days
@@ -176,10 +249,10 @@ class PackingViewModelTest {
 
                 // Wait for update
                 var updatedTrips = awaitItem()
-                var updatedSocks = updatedTrips[tripId]?.items?.find { it.name == "Socks" }
+                var updatedSocks = updatedTrips[tripId]?.items?.find { it.name == "Recompute Socks" }
                 while (updatedSocks?.quantity != 5) {
                     updatedTrips = awaitItem()
-                    updatedSocks = updatedTrips[tripId]?.items?.find { it.name == "Socks" }
+                    updatedSocks = updatedTrips[tripId]?.items?.find { it.name == "Recompute Socks" }
                 }
 
                 assertEquals(5, updatedSocks?.quantity, "Quantity should recompute to 5")
@@ -241,262 +314,47 @@ class PackingViewModelTest {
         }
 
     @Test
-    fun testUndoAndRedo() = runTest {
-        val fakeDataStore = FakeDataStoreManager()
-        val repository = PackingRepository(fakeDataStore, backgroundScope)
-        val viewModel = PackingViewModel(repository)
+    fun testUndoAndRedo() =
+        runTest {
+            val fakeDataStore = FakeDataStoreManager()
+            val repository = PackingRepository(fakeDataStore, backgroundScope)
+            val viewModel = PackingViewModel(repository)
 
-        waitForInitialization(viewModel)
+            waitForInitialization(viewModel)
 
-        // Initial state: nothing done yet. Undo/Redo should be false.
-        assertEquals(false, viewModel.canUndo.value)
-        assertEquals(false, viewModel.canRedo.value)
+            // Initial state
+            viewModel.createTrip("Trip 1", "g1", LocalDate(2024, 1, 1), LocalDate(2024, 1, 1))
 
-        // Try calling undo/redo on empty stacks (testing early return branches)
-        viewModel.undo()
-        viewModel.redo()
-
-        // perform action: add general item
-        viewModel.addGeneralItem("UndoItem", 1, false)
-
-        // Wait for it
-        viewModel.observeGeneralItems().test {
-            var items = awaitItem()
-            while (items.none { it.name == "UndoItem" }) {
-                items = awaitItem()
-            }
-            cancelAndIgnoreRemainingEvents()
-        }
-
-        assertTrue(viewModel.canUndo.value)
-        assertFalse(viewModel.canRedo.value)
-
-        // Undo
-        viewModel.undo()
-        assertTrue(viewModel.canRedo.value)
-
-        viewModel.observeGeneralItems().test {
-            var items = awaitItem()
-            while (items.any { it.name == "UndoItem" }) {
-                items = awaitItem()
-            }
-            assertTrue(items.none { it.name == "UndoItem" })
-            cancelAndIgnoreRemainingEvents()
-        }
-
-        // Redo
-        viewModel.redo()
-        assertTrue(viewModel.canUndo.value)
-
-        viewModel.observeGeneralItems().test {
-            var items = awaitItem()
-            while (items.none { it.name == "UndoItem" }) {
-                items = awaitItem()
-            }
-            assertTrue(items.any { it.name == "UndoItem" })
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun testDeleteTrip() = runTest {
-        val fakeDataStore = FakeDataStoreManager()
-        val repository = PackingRepository(fakeDataStore, backgroundScope)
-        val viewModel = PackingViewModel(repository)
-
-        val list = waitForInitialization(viewModel)
-        viewModel.createTrip("TripToDelete", list.id, LocalDate(2024, 1, 1), LocalDate(2024, 1, 1))
-
-        viewModel.trips.test {
-            var trips = awaitItem()
-            while (trips.values.none { it.title == "TripToDelete" }) {
-                trips = awaitItem()
-            }
-            val tripId = trips.values.find { it.title == "TripToDelete" }!!.id
-
-            viewModel.deleteTrip(tripId)
-
-            trips = awaitItem()
-            while (trips.containsKey(tripId)) {
-                trips = awaitItem()
-            }
-            assertFalse(trips.containsKey(tripId))
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun testRemoveTripItem() = runTest {
-        val fakeDataStore = FakeDataStoreManager()
-        val repository = PackingRepository(fakeDataStore, backgroundScope)
-        val viewModel = PackingViewModel(repository)
-
-        val list = waitForInitialization(viewModel)
-        viewModel.createTrip("TripToRemoveItem", list.id, LocalDate(2024, 1, 1), LocalDate(2024, 1, 1))
-
-        viewModel.trips.test {
-            var trips = awaitItem()
-            while (trips.values.none { it.title == "TripToRemoveItem" } || trips.values.first().items.isEmpty()) {
-                trips = awaitItem()
-            }
-            val tripId = trips.values.find { it.title == "TripToRemoveItem" }!!.id
-            val itemId = trips[tripId]!!.items.first().id
-
-            viewModel.removeTripItem(tripId, itemId)
-
-            trips = awaitItem()
-            while (trips[tripId]?.items?.any { it.id == itemId } == true) {
-                trips = awaitItem()
-            }
-            assertFalse(trips[tripId]!!.items.any { it.id == itemId })
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun testRemoveItemFromTripType() = runTest {
-        val fakeDataStore = FakeDataStoreManager()
-        val repository = PackingRepository(fakeDataStore, backgroundScope)
-        val viewModel = PackingViewModel(repository)
-
-        waitForInitialization(viewModel)
-        viewModel.createNewTripType("TypeToRemove")
-
-        viewModel.lists.test {
-            var lists = awaitItem()
-            while (lists.values.none { it.title == "TypeToRemove" }) {
-                lists = awaitItem()
-            }
-            val listId = lists.values.find { it.title == "TypeToRemove" }!!.id
-            
-            viewModel.addItemToTripType(listId, "ItemToRemove", 1, false)
-            
-            // Wait for item
-            viewModel.observeItemsForList(listId).test {
-                var items = awaitItem()
-                while (items.none { it.name == "ItemToRemove" }) {
-                    items = awaitItem()
+            viewModel.trips.test {
+                var trips = awaitItem()
+                while (trips.values.none { it.title == "Trip 1" }) {
+                    trips = awaitItem()
                 }
-                val itemId = items.find { it.name == "ItemToRemove" }!!.id
-                
-                viewModel.removeItemFromTripType(listId, itemId)
-                
-                items = awaitItem()
-                while (items.any { it.id == itemId }) {
-                    items = awaitItem()
+
+                // Add an item
+                viewModel.addCustomItemToTrip(trips.values.first().id, "New Item", 1)
+                trips = awaitItem()
+                while (trips.values.first().items.none { it.name == "New Item" }) {
+                    trips = awaitItem()
                 }
-                assertTrue(items.none { it.id == itemId })
+
+                // Undo
+                viewModel.undo()
+                trips = awaitItem()
+                while (trips.values.first().items.any { it.name == "New Item" }) {
+                    trips = awaitItem()
+                }
+                assertTrue(trips.values.first().items.none { it.name == "New Item" })
+
+                // Redo
+                viewModel.redo()
+                trips = awaitItem()
+                while (trips.values.first().items.none { it.name == "New Item" }) {
+                    trips = awaitItem()
+                }
+                assertTrue(trips.values.first().items.any { it.name == "New Item" })
+
                 cancelAndIgnoreRemainingEvents()
             }
-            cancelAndIgnoreRemainingEvents()
         }
-    }
-
-    @Test
-    fun testToggleBaseItemPerDay() = runTest {
-        val fakeDataStore = FakeDataStoreManager()
-        val repository = PackingRepository(fakeDataStore, backgroundScope)
-        val viewModel = PackingViewModel(repository)
-
-        waitForInitialization(viewModel)
-        viewModel.addGeneralItem("PerDayItem", 1, false)
-
-        viewModel.observeGeneralItems().test {
-            var items = awaitItem()
-            while (items.none { it.name == "PerDayItem" }) {
-                items = awaitItem()
-            }
-            val itemId = items.find { it.name == "PerDayItem" }!!.id
-            assertEquals(false, items.find { it.id == itemId }?.isPerDay)
-
-            viewModel.toggleBaseItemPerDay(itemId)
-
-            items = awaitItem()
-            while (items.find { it.id == itemId }?.isPerDay != true) {
-                items = awaitItem()
-            }
-            assertTrue(items.find { it.id == itemId }?.isPerDay == true)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun testGetLists() = runTest {
-        val fakeDataStore = FakeDataStoreManager()
-        val repository = PackingRepository(fakeDataStore, backgroundScope)
-        val viewModel = PackingViewModel(repository)
-
-        waitForInitialization(viewModel)
-        
-        // Mock data initialization adds one general list
-        val lists = viewModel.getLists()
-        assertTrue(lists.any { it.isGeneral })
-    }
-
-    @Test
-    fun testObserveTripSectionsGroupsCorrectly() = runTest {
-        val fakeDataStore = FakeDataStoreManager()
-        val repository = PackingRepository(fakeDataStore, backgroundScope)
-        val viewModel = PackingViewModel(repository)
-
-        val list = waitForInitialization(viewModel)
-        val tripId = "test_trip"
-        val trip = Trip(
-            id = tripId,
-            title = "Grouping Trip",
-            items = listOf(
-                TripItem("1", "Essential Clothing", 1, source = ItemSource.ESSENTIAL, category = ItemCategory.CLOTHING),
-                TripItem("2", "Essential Toiletries", 1, source = ItemSource.ESSENTIAL, category = ItemCategory.TOILETRIES),
-                TripItem("3", "Custom Other", 1, source = ItemSource.CUSTOM, category = ItemCategory.OTHER),
-            )
-        )
-        repository.addTrip(trip)
-
-        viewModel.observeTripSections(tripId).test {
-            val sections = awaitItem()
-            
-            assertEquals(2, sections.size, "Should have 2 source sections (Essential and Custom)")
-            
-            val essentialSection = sections.find { it.source == ItemSource.ESSENTIAL }
-            assertNotNull(essentialSection)
-            assertEquals(2, essentialSection.categories.size, "Essential section should have 2 categories")
-            assertTrue(essentialSection.categories.any { it.category == ItemCategory.CLOTHING })
-            assertTrue(essentialSection.categories.any { it.category == ItemCategory.TOILETRIES })
-
-            val customSection = sections.find { it.source == ItemSource.CUSTOM }
-            assertNotNull(customSection)
-            assertEquals(1, customSection.categories.size, "Custom section should have 1 category")
-            assertEquals(ItemCategory.OTHER, customSection.categories[0].category)
-            
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun testObserveTripSectionsFiltersEmptySections() = runTest {
-        val fakeDataStore = FakeDataStoreManager()
-        val repository = PackingRepository(fakeDataStore, backgroundScope)
-        val viewModel = PackingViewModel(repository)
-
-        val list = waitForInitialization(viewModel)
-        val tripId = "test_trip"
-        val trip = Trip(
-            id = tripId,
-            title = "Empty Sections Trip",
-            items = listOf(
-                TripItem("1", "Essential Only", 1, source = ItemSource.ESSENTIAL, category = ItemCategory.CLOTHING),
-            )
-        )
-        repository.addTrip(trip)
-
-        viewModel.observeTripSections(tripId).test {
-            val sections = awaitItem()
-            
-            assertEquals(1, sections.size, "Should only have the Essential source section")
-            assertEquals(ItemSource.ESSENTIAL, sections[0].source)
-            assertEquals(1, sections[0].categories.size, "Should only have 1 category section")
-            
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
 }

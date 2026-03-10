@@ -35,9 +35,9 @@ class PackingRepository(
                     } catch (e: Exception) {}
                 } else if (_items.value.isEmpty()) {
                     val mockItems = listOf(
-                        PackingItem("1", "Underwear", 1, true),
-                        PackingItem("2", "Socks", 1, true),
-                        PackingItem("3", "Passport", 1, false)
+                        PackingItem("1", "Underwear", 1, true, category = ItemCategory.CLOTHING),
+                        PackingItem("2", "Socks", 1, true, category = ItemCategory.CLOTHING),
+                        PackingItem("3", "Passport", 1, false, category = ItemCategory.DOCUMENTS)
                     ).associateBy { it.id }
                     _items.value = mockItems
                     saveItems()
