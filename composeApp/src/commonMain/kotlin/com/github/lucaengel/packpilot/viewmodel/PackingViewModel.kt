@@ -78,13 +78,15 @@ class PackingViewModel(
         _canRedo.value = redoStack.isNotEmpty()
     }
 
-    private fun calculateQuantity(item: PackingItem, days: Int): Int {
-        return if (item.isPerDay) {
-            ceil(item.baseQuantity.toDouble() * days / item.quantityPerDays).toInt()
+    private fun calculateQuantity(
+        item: PackingItem,
+        days: Int,
+    ): Int =
+        if (item.isPerDay) {
+            ceil(item.baseQuantity.toDouble() * days / item.quantityPerDays.coerceAtLeast(1)).toInt()
         } else {
             item.baseQuantity
         }
-    }
 
     fun createTrip(
         title: String,
@@ -272,7 +274,7 @@ class PackingViewModel(
                 name = name,
                 baseQuantity = baseQuantity,
                 isPerDay = isPerDay,
-                quantityPerDays = quantityPerDays,
+                quantityPerDays = quantityPerDays.coerceAtLeast(1),
                 category = category,
             )
         repository.addItem(newItem)
@@ -314,7 +316,7 @@ class PackingViewModel(
                 name = name,
                 baseQuantity = baseQuantity,
                 isPerDay = isPerDay,
-                quantityPerDays = quantityPerDays,
+                quantityPerDays = quantityPerDays.coerceAtLeast(1),
                 category = category,
             )
         repository.addItem(newItem)
