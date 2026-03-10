@@ -80,12 +80,10 @@ fun TripDetailsScreen(
     val trips by viewModel.trips.collectAsState()
     val trip = trips[tripId] ?: return
 
+    val sections by viewModel.observeTripSections(tripId).collectAsState(initial = emptyList())
+
     val canUndo by viewModel.canUndo.collectAsState()
     val canRedo by viewModel.canRedo.collectAsState()
-
-    val essentialItems = trip.items.filter { it.source == ItemSource.ESSENTIAL }
-    val activityItems = trip.items.filter { it.source == ItemSource.ACTIVITY }
-    val customItems = trip.items.filter { it.source == ItemSource.CUSTOM }
 
     var isEditMode by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -196,19 +194,30 @@ fun TripDetailsScreen(
                 HorizontalDivider()
             }
 
-            if (essentialItems.isNotEmpty()) {
-                item { SectionHeader("Essential Items") }
-                items(essentialItems) { item -> ImprovedTripItemRow(item, tripId, viewModel, isEditMode) }
-            }
+            sections.forEach { sourceSection ->
+                item {
+                    val title = when (sourceSection.source) {
+                        ItemSource.ESSENTIAL -> "Essential Items"
+                        ItemSource.ACTIVITY -> "${trip.activityTitle} Items"
+                        ItemSource.CUSTOM -> "Added for this trip"
+                    }
+                    SectionHeader(title)
+                }
 
-            if (activityItems.isNotEmpty()) {
-                item { SectionHeader("${trip.activityTitle} Items") }
-                items(activityItems) { item -> ImprovedTripItemRow(item, tripId, viewModel, isEditMode) }
-            }
-
-            if (customItems.isNotEmpty()) {
-                item { SectionHeader("Added for this trip") }
-                items(customItems) { item -> ImprovedTripItemRow(item, tripId, viewModel, isEditMode) }
+                sourceSection.categories.forEach { categorySection ->
+                    item {
+                        Text(
+                            text = categorySection.category.displayName,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp).testTag("CategoryHeader_${sourceSection.source.name}_${categorySection.category.name}")
+                        )
+                    }
+                    items(categorySection.items) { item ->
+                        ImprovedTripItemRow(item, tripId, viewModel, isEditMode)
+                    }
+                }
             }
         }
     }

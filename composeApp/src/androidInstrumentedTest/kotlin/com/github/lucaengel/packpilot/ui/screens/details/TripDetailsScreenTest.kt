@@ -2,6 +2,10 @@ package com.github.lucaengel.packpilot.ui.screens.details
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import com.github.lucaengel.packpilot.model.ItemCategory
+import com.github.lucaengel.packpilot.model.ItemSource
+import com.github.lucaengel.packpilot.model.Trip
+import com.github.lucaengel.packpilot.model.TripItem
 import com.github.lucaengel.packpilot.repository.FakeDataStoreManager
 import com.github.lucaengel.packpilot.repository.PackingRepository
 import com.github.lucaengel.packpilot.viewmodel.PackingViewModel
@@ -175,6 +179,42 @@ class TripDetailsScreenTest {
         tripDetailsScreenRobot(composeTestRule) {
             clickDeleteTrip()
             assertDeleteDialogIsDisplayed()
+        }
+    }
+
+    @Test
+    fun sectionsAndCategoriesAreDisplayedCorrectly() = runTest {
+        val testScope = TestScope()
+        val repository = PackingRepository(FakeDataStoreManager(), testScope)
+        val viewModel = PackingViewModel(repository)
+
+        val tripId = "test_trip"
+        val trip = Trip(
+            id = tripId,
+            title = "Grouping Trip",
+            activityTitle = "City",
+            items = listOf(
+                TripItem("1", "Underwear", 1, source = ItemSource.ESSENTIAL, category = ItemCategory.CLOTHING),
+                TripItem("2", "Toothbrush", 1, source = ItemSource.ESSENTIAL, category = ItemCategory.TOILETRIES),
+                TripItem("3", "Umbrella", 1, source = ItemSource.CUSTOM, category = ItemCategory.OTHER),
+            )
+        )
+        repository.addTrip(trip)
+
+        composeTestRule.setContent {
+            TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
+        }
+
+        tripDetailsScreenRobot(composeTestRule) {
+            assertSourceHeaderExists("Essential Items")
+            assertCategoryHeaderExists(ItemSource.ESSENTIAL, ItemCategory.CLOTHING)
+            assertItemExists("Underwear")
+            assertCategoryHeaderExists(ItemSource.ESSENTIAL, ItemCategory.TOILETRIES)
+            assertItemExists("Toothbrush")
+
+            assertSourceHeaderExists("Added for this trip")
+            assertCategoryHeaderExists(ItemSource.CUSTOM, ItemCategory.OTHER)
+            assertItemExists("Umbrella")
         }
     }
 }

@@ -3,9 +3,11 @@ package com.github.lucaengel.packpilot.ui.screens.details
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import com.github.lucaengel.packpilot.model.ItemCategory
+import com.github.lucaengel.packpilot.model.ItemSource
 
-class TripDetailsScreenRobot(private val composeTestRule: ComposeContentTestRule) {
-
+class TripDetailsScreenRobot(
+    private val composeTestRule: ComposeContentTestRule,
+) {
     fun clickEdit() {
         composeTestRule.onNodeWithTag("EditModeButton").performClick()
     }
@@ -41,7 +43,7 @@ class TripDetailsScreenRobot(private val composeTestRule: ComposeContentTestRule
 
     fun selectCategoryInCustomDialog(category: ItemCategory) {
         composeTestRule.onNodeWithTag("CustomItemCategorySelector").performClick()
-        composeTestRule.onNodeWithText(category.name).performClick()
+        composeTestRule.onNodeWithText(category.displayName).performClick()
     }
 
     fun clickConfirmAddCustomItem() {
@@ -65,20 +67,33 @@ class TripDetailsScreenRobot(private val composeTestRule: ComposeContentTestRule
         composeTestRule.onNodeWithTag("IncreaseQuantity_$itemName", useUnmergedTree = true).performClick()
     }
 
-    fun assertQuantity(itemName: String, qty: Int) {
-        composeTestRule.onNodeWithTag("ItemQuantity_$itemName", useUnmergedTree = true)
+    fun assertQuantity(
+        itemName: String,
+        qty: Int,
+    ) {
+        composeTestRule
+            .onNodeWithTag("ItemQuantity_$itemName", useUnmergedTree = true)
             .assertTextEquals("Qty: $qty")
     }
 
-    fun assertCategory(itemName: String, category: ItemCategory) {
+    fun assertCategory(
+        itemName: String,
+        category: ItemCategory,
+    ) {
         // In edit mode, it's a selector, in normal mode it's a label
-        composeTestRule.onNode(hasText(category.name) and hasAnyAncestor(hasTestTag("TripItemRow_$itemName")), useUnmergedTree = true)
-            .assertIsDisplayed()
+        composeTestRule
+            .onNode(
+                hasText(category.displayName) and hasAnyAncestor(hasTestTag("TripItemRow_$itemName")),
+                useUnmergedTree = true,
+            ).assertIsDisplayed()
     }
 
-    fun changeCategory(itemName: String, newCategory: ItemCategory) {
+    fun changeCategory(
+        itemName: String,
+        newCategory: ItemCategory,
+    ) {
         composeTestRule.onNodeWithTag("CategorySelector_$itemName", useUnmergedTree = true).performClick()
-        composeTestRule.onNodeWithText(newCategory.name).performClick()
+        composeTestRule.onNodeWithText(newCategory.displayName).performClick()
     }
 
     fun clickDatePicker() {
@@ -100,8 +115,19 @@ class TripDetailsScreenRobot(private val composeTestRule: ComposeContentTestRule
     fun assertEditModeButtonExists() {
         composeTestRule.onNodeWithTag("EditModeButton").assertExists()
     }
+
+    fun assertSourceHeaderExists(title: String) {
+        composeTestRule.onNodeWithText(title).assertIsDisplayed()
+    }
+
+    fun assertCategoryHeaderExists(source: ItemSource, category: ItemCategory) {
+        composeTestRule.onNodeWithTag("CategoryHeader_${source.name}_${category.name}").assertIsDisplayed()
+    }
 }
 
-fun tripDetailsScreenRobot(composeTestRule: ComposeContentTestRule, block: TripDetailsScreenRobot.() -> Unit) {
+fun tripDetailsScreenRobot(
+    composeTestRule: ComposeContentTestRule,
+    block: TripDetailsScreenRobot.() -> Unit,
+) {
     TripDetailsScreenRobot(composeTestRule).apply(block)
 }
