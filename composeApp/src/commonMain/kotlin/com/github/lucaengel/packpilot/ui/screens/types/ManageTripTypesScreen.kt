@@ -159,6 +159,7 @@ fun ManageTripTypesScreen(
                             BaseTemplateItemRow(
                                 item = item,
                                 onUpdateQuantity = { viewModel.updateBaseItemQuantity(item.id, it) },
+                                onUpdateQuantityPerDays = { viewModel.updateBaseItemQuantityPerDays(item.id, it) },
                                 onTogglePerDay = { viewModel.toggleBaseItemPerDay(item.id) },
                                 onUpdateCategory = { viewModel.updateBaseItemCategory(item.id, it) },
                                 onDelete = { viewModel.removeItemFromTripType(selectedTypeId!!, item.id) },
@@ -169,6 +170,7 @@ fun ManageTripTypesScreen(
                     if (showAddItemDialog) {
                         var name by remember { mutableStateOf("") }
                         var qty by remember { mutableStateOf("1") }
+                        var qtyPerDays by remember { mutableStateOf("1") }
                         var isPerDay by remember { mutableStateOf(false) }
                         var category by remember { mutableStateOf(ItemCategory.OTHER) }
                         AlertDialog(
@@ -193,10 +195,31 @@ fun ManageTripTypesScreen(
                                             }
                                         },
                                         label = { Text("Quantity") },
+                                        modifier = Modifier.testTag("ItemQtyInput"),
                                     )
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Checkbox(checked = isPerDay, onCheckedChange = { isPerDay = it })
+                                        Checkbox(
+                                            checked = isPerDay,
+                                            onCheckedChange = { isPerDay = it },
+                                            modifier = Modifier.testTag("PerDayCheckbox"),
+                                        )
                                         Text("Per Day")
+                                    }
+
+                                    if (isPerDay) {
+                                        TextField(
+                                            value = qtyPerDays,
+                                            onValueChange = {
+                                                if (it.all { c ->
+                                                        c.isDigit()
+                                                    }
+                                                ) {
+                                                    qtyPerDays = it
+                                                }
+                                            },
+                                            label = { Text("Per how many days?") },
+                                            modifier = Modifier.testTag("ItemQtyPerDaysInput"),
+                                        )
                                     }
 
                                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -218,7 +241,8 @@ fun ManageTripTypesScreen(
                                                 name,
                                                 qty.toIntOrNull() ?: 1,
                                                 isPerDay,
-                                                category
+                                                category,
+                                                qtyPerDays.toIntOrNull() ?: 1
                                             )
                                             showAddItemDialog = false
                                         }

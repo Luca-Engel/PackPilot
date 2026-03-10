@@ -207,6 +207,7 @@ fun CategorySelector(
 fun BaseTemplateItemRow(
     item: PackingItem,
     onUpdateQuantity: (Int) -> Unit,
+    onUpdateQuantityPerDays: (Int) -> Unit = {},
     onTogglePerDay: () -> Unit,
     onUpdateCategory: (ItemCategory) -> Unit,
     onDelete: () -> Unit,
@@ -242,12 +243,36 @@ fun BaseTemplateItemRow(
                         onClick = onTogglePerDay,
                         label = {
                             Text(
-                                if (item.isPerDay) "Per Day" else "Total",
+                                if (item.isPerDay) "Per" else "Total",
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         },
                         modifier = Modifier.testTag("PerDayChip_${item.name}"),
                     )
+
+                    if (item.isPerDay) {
+                        IconButton(
+                            onClick = { onUpdateQuantityPerDays(item.quantityPerDays - 1) },
+                            modifier = Modifier.size(32.dp).testTag("DecreaseBaseQtyPerDays_${item.name}"),
+                        ) {
+                            Icon(Icons.Default.Remove, "Decrease Days")
+                        }
+                        Text(
+                            "${item.quantityPerDays}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(horizontal = 4.dp).testTag("BaseQtyPerDaysText_${item.name}"),
+                        )
+                        IconButton(
+                            onClick = { onUpdateQuantityPerDays(item.quantityPerDays + 1) },
+                            modifier = Modifier.size(32.dp).testTag("IncreaseBaseQtyPerDays_${item.name}"),
+                        ) {
+                            Icon(Icons.Default.Add, "Increase Days")
+                        }
+                        Text(
+                            if (item.quantityPerDays == 1) "day" else "days",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
 
                     Spacer(Modifier.width(8.dp))
 

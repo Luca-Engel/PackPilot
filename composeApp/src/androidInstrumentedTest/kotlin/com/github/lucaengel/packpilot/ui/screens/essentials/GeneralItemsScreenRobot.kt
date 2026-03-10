@@ -18,6 +18,14 @@ class GeneralItemsScreenRobot(private val composeTestRule: ComposeContentTestRul
         composeTestRule.onNodeWithTag("EssentialItemQtyInput").performTextReplacement(qty)
     }
 
+    fun enterEssentialQuantityPerDays(qty: String) {
+        composeTestRule.onNodeWithTag("EssentialItemQtyPerDaysInput").performTextReplacement(qty)
+    }
+
+    fun clickPerDayCheckbox() {
+        composeTestRule.onNodeWithTag("EssentialPerDayCheckbox").performClick()
+    }
+
     fun selectCategoryInDialog(category: ItemCategory) {
         composeTestRule.onNodeWithTag("EssentialCategorySelector").performClick()
         composeTestRule.onNodeWithText(category.displayName).performClick()
@@ -42,8 +50,16 @@ class GeneralItemsScreenRobot(private val composeTestRule: ComposeContentTestRul
         composeTestRule.onNodeWithTag("IncreaseBaseQty_$name", useUnmergedTree = true).performClick()
     }
 
+    fun clickIncreaseQuantityPerDays(name: String) {
+        composeTestRule.onNodeWithTag("IncreaseBaseQtyPerDays_$name", useUnmergedTree = true).performClick()
+    }
+
     fun assertQuantity(name: String, qty: Int) {
         composeTestRule.onNodeWithTag("BaseQtyText_$name", useUnmergedTree = true).assertTextEquals("$qty")
+    }
+
+    fun assertQuantityPerDays(name: String, qty: Int) {
+        composeTestRule.onNodeWithTag("BaseQtyPerDaysText_$name", useUnmergedTree = true).assertTextEquals("$qty")
     }
 
     fun assertCategory(itemName: String, category: ItemCategory) {

@@ -7,6 +7,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
+import kotlin.math.ceil
 import kotlin.random.Random
 
 data class AppState(
@@ -77,6 +78,16 @@ class PackingViewModel(
         _canRedo.value = redoStack.isNotEmpty()
     }
 
+    private fun calculateQuantity(
+        item: PackingItem,
+        days: Int,
+    ): Int =
+        if (item.isPerDay) {
+            ceil(item.baseQuantity.toDouble() * days / item.quantityPerDays.coerceAtLeast(1)).toInt()
+        } else {
+            item.baseQuantity
+        }
+
     fun createTrip(
         title: String,
         listId: String,
@@ -103,7 +114,7 @@ class PackingViewModel(
         val tripItems = mutableListOf<TripItem>()
 
         generalItems.forEach { item ->
-            val qty = if (item.isPerDay) item.baseQuantity * days else item.baseQuantity
+            val qty = calculateQuantity(item, days)
             tripItems.add(
                 TripItem(
                     id = "${item.id}_${Random.nextInt()}",
@@ -117,7 +128,7 @@ class PackingViewModel(
         }
 
         listItems.forEach { item ->
-            val qty = if (item.isPerDay) item.baseQuantity * days else item.baseQuantity
+            val qty = calculateQuantity(item, days)
             tripItems.add(
                 TripItem(
                     id = "${item.id}_${Random.nextInt()}",
@@ -150,7 +161,7 @@ class PackingViewModel(
                 } else {
                     val baseItem = itemsMap[item.originalItemId]
                     if (baseItem != null) {
-                        val newQty = if (baseItem.isPerDay) baseItem.baseQuantity * newDays else baseItem.baseQuantity
+                        val newQty = calculateQuantity(baseItem, newDays)
                         item.copy(quantity = newQty)
                     } else {
                         item
@@ -253,6 +264,7 @@ class PackingViewModel(
         baseQuantity: Int,
         isPerDay: Boolean,
         category: ItemCategory = ItemCategory.OTHER,
+        quantityPerDays: Int = 1,
     ) {
         recordHistory()
         val newItemId = "item_${Random.nextInt()}"
@@ -262,6 +274,7 @@ class PackingViewModel(
                 name = name,
                 baseQuantity = baseQuantity,
                 isPerDay = isPerDay,
+                quantityPerDays = quantityPerDays.coerceAtLeast(1),
                 category = category,
             )
         repository.addItem(newItem)
@@ -293,6 +306,7 @@ class PackingViewModel(
         baseQuantity: Int,
         isPerDay: Boolean,
         category: ItemCategory = ItemCategory.OTHER,
+        quantityPerDays: Int = 1,
     ) {
         recordHistory()
         val newItemId = "item_${Random.nextInt()}"
@@ -302,6 +316,7 @@ class PackingViewModel(
                 name = name,
                 baseQuantity = baseQuantity,
                 isPerDay = isPerDay,
+                quantityPerDays = quantityPerDays.coerceAtLeast(1),
                 category = category,
             )
         repository.addItem(newItem)
@@ -324,6 +339,16 @@ class PackingViewModel(
         recordHistory()
         val item = items.value[itemId] ?: return
         repository.addItem(item.copy(baseQuantity = newQuantity))
+    }
+
+    fun updateBaseItemQuantityPerDays(
+        itemId: String,
+        newQuantityPerDays: Int,
+    ) {
+        if (newQuantityPerDays < 1) return
+        recordHistory()
+        val item = items.value[itemId] ?: return
+        repository.addItem(item.copy(quantityPerDays = newQuantityPerDays))
     }
 
     fun toggleBaseItemPerDay(itemId: String) {
