@@ -108,7 +108,9 @@ class TripDetailsScreenTest {
 
             viewModel.addGeneralItem("Socks", 1, true, category = ItemCategory.CLOTHING, quantityPerDays = 1)
             viewModel.createTrip("Trip", "city", start, end, null)
-            val tripId = viewModel.trips.value.keys.first()
+            val tripId =
+                viewModel.trips.value.keys
+                    .first()
 
             composeTestRule.setContent {
                 TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
@@ -131,7 +133,9 @@ class TripDetailsScreenTest {
 
             viewModel.addGeneralItem("T-Shirts", 1, true, category = ItemCategory.CLOTHING, quantityPerDays = 1)
             viewModel.createTrip("WashingTrip", "city", start, end, 3)
-            val tripId = viewModel.trips.value.keys.first()
+            val tripId =
+                viewModel.trips.value.keys
+                    .first()
 
             composeTestRule.setContent {
                 TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
@@ -157,7 +161,9 @@ class TripDetailsScreenTest {
 
             viewModel.addGeneralItem("Jacket", 1, false, category = ItemCategory.CLOTHING, quantityPerDays = 1)
             viewModel.createTrip("JacketTrip", "city", start, end, 3)
-            val tripId = viewModel.trips.value.keys.first()
+            val tripId =
+                viewModel.trips.value.keys
+                    .first()
 
             composeTestRule.setContent {
                 TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
@@ -181,7 +187,9 @@ class TripDetailsScreenTest {
 
             viewModel.addGeneralItem("Toothbrush", 1, true, category = ItemCategory.OTHER, quantityPerDays = 1)
             viewModel.createTrip("OtherTrip", "city", start, end, 3)
-            val tripId = viewModel.trips.value.keys.first()
+            val tripId =
+                viewModel.trips.value.keys
+                    .first()
 
             composeTestRule.setContent {
                 TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
@@ -206,7 +214,9 @@ class TripDetailsScreenTest {
             // 1 every 2 days
             viewModel.addGeneralItem("Shirt", 1, true, category = ItemCategory.CLOTHING, quantityPerDays = 2)
             viewModel.createTrip("MultiDayTrip", "city", start, end, 3)
-            val tripId = viewModel.trips.value.keys.first()
+            val tripId =
+                viewModel.trips.value.keys
+                    .first()
 
             composeTestRule.setContent {
                 TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
@@ -233,14 +243,16 @@ class TripDetailsScreenTest {
             // 6 every 5 days
             viewModel.addGeneralItem("Shirt", 6, true, category = ItemCategory.CLOTHING, quantityPerDays = 5)
             viewModel.createTrip("MultiDayTrip2", "city", start, end, 3)
-            val tripId = viewModel.trips.value.keys.first()
+            val tripId =
+                viewModel.trips.value.keys
+                    .first()
 
             composeTestRule.setContent {
                 TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
             }
 
             tripDetailsScreenRobot(composeTestRule) {
-                // effectiveDays = 11
+                // effectiveDays = 3
                 // ceil(6*3/5) = 4
                 // +1 buffer
                 assertQuantity("Shirt", 5)
@@ -259,7 +271,9 @@ class TripDetailsScreenTest {
 
             viewModel.addGeneralItem("T-Shirts", 1, true, category = ItemCategory.CLOTHING, quantityPerDays = 1)
             viewModel.createTrip("UpdateWashingTrip", "city", start, end, null)
-            val tripId = viewModel.trips.value.keys.first()
+            val tripId =
+                viewModel.trips.value.keys
+                    .first()
 
             composeTestRule.setContent {
                 TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})

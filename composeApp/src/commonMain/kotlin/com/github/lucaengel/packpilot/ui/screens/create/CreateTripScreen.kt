@@ -89,7 +89,13 @@ fun CreateTripScreen(viewModel: PackingViewModel, onTripCreated: () -> Unit, onB
 
             OutlinedTextField(
                 value = maxDaysBetweenWashes,
-                onValueChange = { if (it.all { char -> char.isDigit() }) maxDaysBetweenWashes = it },
+                onValueChange = {
+                    if (it.all { char -> char.isDigit() }) {
+                        // Reject "0" (or "00", etc.) as valid input to ensure positive values only
+                        if (it.isNotEmpty() && it.toLongOrNull() == 0L) return@OutlinedTextField
+                        maxDaysBetweenWashes = it
+                    }
+                },
                 label = { Text("Max days between washes (optional)") },
                 placeholder = { Text("e.g. 7") },
                 modifier = Modifier.fillMaxWidth().testTag("MaxDaysBetweenWashesInput"),

@@ -83,9 +83,11 @@ class PackingViewModel(
         tripDays: Int,
         maxDaysBetweenWashes: Int? = null,
     ): Int {
+        val sanitizedMaxDays = maxDaysBetweenWashes?.takeIf { it > 0 }
+
         val effectiveDays =
-            if (item.category == ItemCategory.CLOTHING && maxDaysBetweenWashes != null) {
-                tripDays.coerceAtMost(maxDaysBetweenWashes)
+            if (item.category == ItemCategory.CLOTHING && sanitizedMaxDays != null) {
+                tripDays.coerceAtMost(sanitizedMaxDays)
             } else {
                 tripDays
             }
@@ -100,8 +102,8 @@ class PackingViewModel(
         return if (
             item.category == ItemCategory.CLOTHING &&
             item.isPerDay && // only need to wash items if they are designated as "per day"
-            maxDaysBetweenWashes != null &&
-            tripDays > maxDaysBetweenWashes
+            sanitizedMaxDays != null &&
+            tripDays > sanitizedMaxDays
         ) {
             // 1 more item for the day when you wash if you need to wash
             baseQty + 1

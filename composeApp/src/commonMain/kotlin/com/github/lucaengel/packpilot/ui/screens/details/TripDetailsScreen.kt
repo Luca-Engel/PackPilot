@@ -121,14 +121,14 @@ fun TripDetailsScreen(
                         IconButton(
                             onClick = { viewModel.undo() },
                             enabled = canUndo,
-                            modifier = Modifier.testTag("UndoButton")
+                            modifier = Modifier.testTag("UndoButton"),
                         ) {
                             Icon(Icons.AutoMirrored.Filled.Undo, "Undo")
                         }
                         IconButton(
                             onClick = { viewModel.redo() },
                             enabled = canRedo,
-                            modifier = Modifier.testTag("RedoButton")
+                            modifier = Modifier.testTag("RedoButton"),
                         ) {
                             Icon(Icons.AutoMirrored.Filled.Redo, "Redo")
                         }
@@ -157,7 +157,12 @@ fun TripDetailsScreen(
                 Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
                     Button(
                         onClick = { showAddCustomDialog = true },
-                        modifier = Modifier.padding(16.dp).fillMaxWidth().height(56.dp).testTag("AddCustomItemButton"),
+                        modifier =
+                            Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .testTag("AddCustomItemButton"),
                         shape = RoundedCornerShape(16.dp),
                     ) {
                         Icon(Icons.Default.Add, null)
@@ -197,20 +202,29 @@ fun TripDetailsScreen(
                     }
 
                     if (isEditMode) {
-                        var maxDaysStr by remember(trip.maxDaysBetweenWashes) { mutableStateOf(trip.maxDaysBetweenWashes?.toString() ?: "") }
+                        var maxDaysStr by remember(trip.maxDaysBetweenWashes) {
+                            mutableStateOf(trip.maxDaysBetweenWashes?.toString() ?: "")
+                        }
                         OutlinedTextField(
                             value = maxDaysStr,
                             onValueChange = {
                                 if (it.all { char -> char.isDigit() }) {
+                                    if (it.isNotEmpty() && it.toLongOrNull() == 0L) return@OutlinedTextField
                                     maxDaysStr = it
-                                    viewModel.updateTripData(tripId, trip.title, trip.startDate, trip.endDate, it.toIntOrNull())
+                                    viewModel.updateTripData(
+                                        tripId,
+                                        trip.title,
+                                        trip.startDate,
+                                        trip.endDate,
+                                        it.toIntOrNull(),
+                                    )
                                 }
                             },
                             label = { Text("Max days between washes") },
                             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).testTag("EditMaxDaysInput"),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             leadingIcon = { Icon(Icons.Default.LocalLaundryService, null) },
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
                         )
                     } else if (trip.maxDaysBetweenWashes != null) {
                         Spacer(Modifier.height(4.dp))
@@ -236,11 +250,12 @@ fun TripDetailsScreen(
 
             sections.forEach { sourceSection ->
                 item {
-                    val title = when (sourceSection.source) {
-                        ItemSource.ESSENTIAL -> "Essential Items"
-                        ItemSource.ACTIVITY -> "${trip.activityTitle} Items"
-                        ItemSource.CUSTOM -> "Added for this trip"
-                    }
+                    val title =
+                        when (sourceSection.source) {
+                            ItemSource.ESSENTIAL -> "Essential Items"
+                            ItemSource.ACTIVITY -> "${trip.activityTitle} Items"
+                            ItemSource.CUSTOM -> "Added for this trip"
+                        }
                     SectionHeader(title)
                 }
 
@@ -251,7 +266,12 @@ fun TripDetailsScreen(
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp).testTag("CategoryHeader_${sourceSection.source.name}_${categorySection.category.name}")
+                            modifier =
+                                Modifier
+                                    .padding(top = 8.dp, bottom = 4.dp)
+                                    .testTag(
+                                        "CategoryHeader_${sourceSection.source.name}_${categorySection.category.name}",
+                                    ),
                         )
                     }
                     items(categorySection.items) { item ->
@@ -308,23 +328,27 @@ fun TripDetailsScreen(
                         value = name,
                         onValueChange = { name = it },
                         label = { Text("Item Name") },
-                        modifier = Modifier.testTag("CustomItemNameInput")
+                        modifier = Modifier.testTag("CustomItemNameInput"),
                     )
-                    TextField(value = qty, onValueChange = {
-                        if (it.all { c ->
-                                c.isDigit()
+                    TextField(
+                        value = qty,
+                        onValueChange = {
+                            if (it.all { c -> c.isDigit() }) {
+                                if (it.isNotEmpty() && it.toLongOrNull() == 0L) return@TextField
+                                qty = it
                             }
-                        ) {
-                            qty = it
-                        }
-                    }, label = { Text("Quantity") }, modifier = Modifier.testTag("CustomItemQtyInput"))
+                        },
+                        label = { Text("Quantity") },
+                        modifier = Modifier.testTag("CustomItemQtyInput"),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    )
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("Category: ", style = MaterialTheme.typography.bodyMedium)
                         CategorySelector(
                             currentCategory = category,
                             onCategorySelected = { category = it },
-                            modifier = Modifier.testTag("CustomItemCategorySelector")
+                            modifier = Modifier.testTag("CustomItemCategorySelector"),
                         )
                     }
                 }
@@ -347,11 +371,14 @@ fun TripDetailsScreen(
             title = { Text("Delete Trip?") },
             text = { Text("Are you sure you want to delete this trip and its packing progress?") },
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.deleteTrip(tripId)
-                    onBack()
-                }, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                    modifier = Modifier.testTag("ConfirmDeleteTrip")) {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteTrip(tripId)
+                        onBack()
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.testTag("ConfirmDeleteTrip"),
+                ) {
                     Text("Delete")
                 }
             },
