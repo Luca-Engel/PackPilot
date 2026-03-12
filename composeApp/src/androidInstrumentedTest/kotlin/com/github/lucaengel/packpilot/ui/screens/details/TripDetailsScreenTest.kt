@@ -69,7 +69,7 @@ class TripDetailsScreenTest {
             val today = LocalDate(2024, 1, 1)
 
             // Add template item: 5 items per 6 days
-            viewModel.addGeneralItem("T-Shirts", 5, true, quantityPerDays = 6)
+            viewModel.addGeneralItem("T-Shirts", 5, true, category = ItemCategory.CLOTHING, quantityPerDays = 6)
 
             // 5-day trip -> ceil(5 * 5/6) = 5
             viewModel.createTrip(
@@ -93,6 +93,202 @@ class TripDetailsScreenTest {
 
             tripDetailsScreenRobot(composeTestRule) {
                 assertQuantity("T-Shirts", 5)
+            }
+        }
+
+    @Test
+    fun perDayClothingWithoutWashingDisplaysCorrectQuantity() =
+        runTest {
+            val testScope = TestScope()
+            val repository = PackingRepository(FakeDataStoreManager(), testScope)
+            val viewModel = PackingViewModel(repository)
+
+            val start = LocalDate(2024, 1, 1)
+            val end = LocalDate(2024, 1, 5) // 5 days
+
+            viewModel.addGeneralItem("Socks", 1, true, category = ItemCategory.CLOTHING, quantityPerDays = 1)
+            viewModel.createTrip("Trip", "city", start, end, null)
+            val tripId =
+                viewModel.trips.value.keys
+                    .first()
+
+            composeTestRule.setContent {
+                TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
+            }
+
+            tripDetailsScreenRobot(composeTestRule) {
+                assertQuantity("Socks", 5)
+            }
+        }
+
+    @Test
+    fun clothingWithWashingIntervalAddsBufferInUI() =
+        runTest {
+            val testScope = TestScope()
+            val repository = PackingRepository(FakeDataStoreManager(), testScope)
+            val viewModel = PackingViewModel(repository)
+
+            val start = LocalDate(2024, 1, 1)
+            val end = LocalDate(2024, 1, 7) // 7 days
+
+            viewModel.addGeneralItem("T-Shirts", 1, true, category = ItemCategory.CLOTHING, quantityPerDays = 1)
+            viewModel.createTrip("WashingTrip", "city", start, end, 3)
+            val tripId =
+                viewModel.trips.value.keys
+                    .first()
+
+            composeTestRule.setContent {
+                TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
+            }
+
+            tripDetailsScreenRobot(composeTestRule) {
+                // effectiveDays = 3
+                // baseQty = 3
+                // +1 buffer
+                assertQuantity("T-Shirts", 4)
+            }
+        }
+
+    @Test
+    fun nonPerDayClothingWithWashingStayOriginalQuantityInUI() =
+        runTest {
+            val testScope = TestScope()
+            val repository = PackingRepository(FakeDataStoreManager(), testScope)
+            val viewModel = PackingViewModel(repository)
+
+            val start = LocalDate(2024, 1, 1)
+            val end = LocalDate(2024, 1, 10) // 10 days
+
+            viewModel.addGeneralItem("Jacket", 1, false, category = ItemCategory.CLOTHING, quantityPerDays = 1)
+            viewModel.createTrip("JacketTrip", "city", start, end, 3)
+            val tripId =
+                viewModel.trips.value.keys
+                    .first()
+
+            composeTestRule.setContent {
+                TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
+            }
+
+            tripDetailsScreenRobot(composeTestRule) {
+                // baseQuantity = 1 -> no washing for items you don't have a given interval of using for
+                assertQuantity("Jacket", 1)
+            }
+        }
+
+    @Test
+    fun nonClothingItemIgnoresWashingLogicInUI() =
+        runTest {
+            val testScope = TestScope()
+            val repository = PackingRepository(FakeDataStoreManager(), testScope)
+            val viewModel = PackingViewModel(repository)
+
+            val start = LocalDate(2024, 1, 1)
+            val end = LocalDate(2024, 1, 10) // 10 days
+
+            viewModel.addGeneralItem("Toothbrush", 1, true, category = ItemCategory.OTHER, quantityPerDays = 1)
+            viewModel.createTrip("OtherTrip", "city", start, end, 3)
+            val tripId =
+                viewModel.trips.value.keys
+                    .first()
+
+            composeTestRule.setContent {
+                TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
+            }
+
+            tripDetailsScreenRobot(composeTestRule) {
+                // expect 10 since once per day and washing does not affect the count
+                assertQuantity("Toothbrush", 10)
+            }
+        }
+
+    @Test
+    fun perDayClothingWithMultiDayUsageLessItemsThanDaysInUI() =
+        runTest {
+            val testScope = TestScope()
+            val repository = PackingRepository(FakeDataStoreManager(), testScope)
+            val viewModel = PackingViewModel(repository)
+
+            val start = LocalDate(2024, 1, 1)
+            val end = LocalDate(2024, 1, 10) // 10 days
+
+            // 1 every 2 days
+            viewModel.addGeneralItem("Shirt", 1, true, category = ItemCategory.CLOTHING, quantityPerDays = 2)
+            viewModel.createTrip("MultiDayTrip", "city", start, end, 3)
+            val tripId =
+                viewModel.trips.value.keys
+                    .first()
+
+            composeTestRule.setContent {
+                TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
+            }
+
+            tripDetailsScreenRobot(composeTestRule) {
+                // effectiveDays = 3
+                // ceil(1*3/2) = 2
+                // +1 buffer
+                assertQuantity("Shirt", 3)
+            }
+        }
+
+    @Test
+    fun perDayClothingWithMultiDayUsageMoreItemsThanDaysInUI() =
+        runTest {
+            val testScope = TestScope()
+            val repository = PackingRepository(FakeDataStoreManager(), testScope)
+            val viewModel = PackingViewModel(repository)
+
+            val start = LocalDate(2024, 1, 1)
+            val end = LocalDate(2024, 1, 11) // 11 days
+
+            // 6 every 5 days
+            viewModel.addGeneralItem("Shirt", 6, true, category = ItemCategory.CLOTHING, quantityPerDays = 5)
+            viewModel.createTrip("MultiDayTrip2", "city", start, end, 3)
+            val tripId =
+                viewModel.trips.value.keys
+                    .first()
+
+            composeTestRule.setContent {
+                TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
+            }
+
+            tripDetailsScreenRobot(composeTestRule) {
+                // effectiveDays = 3
+                // ceil(6*3/5) = 4
+                // +1 buffer
+                assertQuantity("Shirt", 5)
+            }
+        }
+
+    @Test
+    fun updatingWashingIntervalInUIUpdatesQuantities() =
+        runTest {
+            val testScope = TestScope()
+            val repository = PackingRepository(FakeDataStoreManager(), testScope)
+            val viewModel = PackingViewModel(repository)
+
+            val start = LocalDate(2024, 1, 1)
+            val end = LocalDate(2024, 1, 7) // 7 days
+
+            viewModel.addGeneralItem("T-Shirts", 1, true, category = ItemCategory.CLOTHING, quantityPerDays = 1)
+            viewModel.createTrip("UpdateWashingTrip", "city", start, end, null)
+            val tripId =
+                viewModel.trips.value.keys
+                    .first()
+
+            composeTestRule.setContent {
+                TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
+            }
+
+            tripDetailsScreenRobot(composeTestRule) {
+                assertQuantity("T-Shirts", 7) // No washing logic yet
+
+                clickEdit()
+                enterMaxDaysBetweenWashes("3")
+
+                // effectiveDays = 3
+                // baseQty = 3
+                // +1 buffer
+                assertQuantity("T-Shirts", 4)
             }
         }
 

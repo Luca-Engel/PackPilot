@@ -4,15 +4,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.LocalLaundryService
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.github.lucaengel.packpilot.viewmodel.PackingViewModel
 import kotlinx.datetime.*
@@ -24,6 +27,7 @@ fun CreateTripScreen(viewModel: PackingViewModel, onTripCreated: () -> Unit, onB
     var selectedListId by remember { mutableStateOf("") }
     var searchQuery by remember { mutableStateOf("") }
     var showDatePicker by remember { mutableStateOf(false) }
+    var maxDaysBetweenWashes by remember { mutableStateOf("") }
     
     val dateRangePickerState = rememberDateRangePickerState()
     val lists by viewModel.lists.collectAsState()
@@ -42,7 +46,8 @@ fun CreateTripScreen(viewModel: PackingViewModel, onTripCreated: () -> Unit, onB
                     onClick = {
                         val start = Instant.fromEpochMilliseconds(dateRangePickerState.selectedStartDateMillis!!).toLocalDateTime(TimeZone.UTC).date
                         val end = Instant.fromEpochMilliseconds(dateRangePickerState.selectedEndDateMillis!!).toLocalDateTime(TimeZone.UTC).date
-                        viewModel.createTrip(title, selectedListId, start, end)
+                        val laundryDays = maxDaysBetweenWashes.toIntOrNull()
+                        viewModel.createTrip(title, selectedListId, start, end, laundryDays)
                         onTripCreated()
                     },
                     modifier = Modifier.padding(16.dp).fillMaxWidth().height(56.dp).testTag("ConfirmTripButton"),
@@ -81,6 +86,23 @@ fun CreateTripScreen(viewModel: PackingViewModel, onTripCreated: () -> Unit, onB
                     )
                 }
             }
+
+            OutlinedTextField(
+                value = maxDaysBetweenWashes,
+                onValueChange = {
+                    if (it.all { char -> char.isDigit() }) {
+                        // Reject "0" (or "00", etc.) as valid input to ensure positive values only
+                        if (it.isNotEmpty() && it.toLongOrNull() == 0L) return@OutlinedTextField
+                        maxDaysBetweenWashes = it
+                    }
+                },
+                label = { Text("Max days between washes (optional)") },
+                placeholder = { Text("e.g. 7") },
+                modifier = Modifier.fillMaxWidth().testTag("MaxDaysBetweenWashesInput"),
+                shape = RoundedCornerShape(12.dp),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                leadingIcon = { Icon(Icons.Default.LocalLaundryService, null) }
+            )
 
             Text("Activity Type", style = MaterialTheme.typography.titleMedium)
             

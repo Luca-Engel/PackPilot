@@ -78,21 +78,46 @@ class PackingViewModel(
         _canRedo.value = redoStack.isNotEmpty()
     }
 
-    private fun calculateQuantity(
+    fun calculateQuantity(
         item: PackingItem,
-        days: Int,
-    ): Int =
-        if (item.isPerDay) {
-            ceil(item.baseQuantity.toDouble() * days / item.quantityPerDays.coerceAtLeast(1)).toInt()
+        tripDays: Int,
+        maxDaysBetweenWashes: Int? = null,
+    ): Int {
+        val sanitizedMaxDays = maxDaysBetweenWashes?.takeIf { it > 0 }
+
+        val effectiveDays =
+            if (item.category == ItemCategory.CLOTHING && sanitizedMaxDays != null) {
+                tripDays.coerceAtMost(sanitizedMaxDays)
+            } else {
+                tripDays
+            }
+
+        val baseQty =
+            if (item.isPerDay) {
+                ceil(item.baseQuantity.toDouble() * effectiveDays / item.quantityPerDays.coerceAtLeast(1)).toInt()
+            } else {
+                item.baseQuantity
+            }
+
+        return if (
+            item.category == ItemCategory.CLOTHING &&
+            item.isPerDay && // only need to wash items if they are designated as "per day"
+            sanitizedMaxDays != null &&
+            tripDays > sanitizedMaxDays
+        ) {
+            // 1 more item for the day when you wash if you need to wash
+            baseQty + 1
         } else {
-            item.baseQuantity
+            baseQty
         }
+    }
 
     fun createTrip(
         title: String,
         listId: String,
         startDate: LocalDate,
         endDate: LocalDate,
+        maxDaysBetweenWashes: Int? = null,
     ) {
         recordHistory()
         val tripId = "trip_${Clock.System.now().toEpochMilliseconds()}_${Random.nextInt(1000)}"
@@ -105,6 +130,7 @@ class PackingViewModel(
                 endDate = endDate,
                 activityTitle = activityTitle,
                 baseListId = listId,
+                maxDaysBetweenWashes = maxDaysBetweenWashes,
             )
         val days = tempTrip.days
 
@@ -114,7 +140,7 @@ class PackingViewModel(
         val tripItems = mutableListOf<TripItem>()
 
         generalItems.forEach { item ->
-            val qty = calculateQuantity(item, days)
+            val qty = calculateQuantity(item, days, maxDaysBetweenWashes)
             tripItems.add(
                 TripItem(
                     id = "${item.id}_${Random.nextInt()}",
@@ -128,7 +154,7 @@ class PackingViewModel(
         }
 
         listItems.forEach { item ->
-            val qty = calculateQuantity(item, days)
+            val qty = calculateQuantity(item, days, maxDaysBetweenWashes)
             tripItems.add(
                 TripItem(
                     id = "${item.id}_${Random.nextInt()}",
@@ -144,10 +170,12 @@ class PackingViewModel(
         repository.addTrip(tempTrip.copy(items = tripItems))
     }
 
-    fun updateTripDates(
+    fun updateTripData(
         tripId: String,
+        title: String,
         startDate: LocalDate,
         endDate: LocalDate,
+        maxDaysBetweenWashes: Int? = null,
     ) {
         recordHistory()
         val trip = trips.value[tripId] ?: return
@@ -161,7 +189,7 @@ class PackingViewModel(
                 } else {
                     val baseItem = itemsMap[item.originalItemId]
                     if (baseItem != null) {
-                        val newQty = calculateQuantity(baseItem, newDays)
+                        val newQty = calculateQuantity(baseItem, newDays, maxDaysBetweenWashes)
                         item.copy(quantity = newQty)
                     } else {
                         item
@@ -169,7 +197,24 @@ class PackingViewModel(
                 }
             }
 
-        repository.updateTrip(trip.copy(startDate = startDate, endDate = endDate, items = updatedItems))
+        repository.updateTrip(
+            trip.copy(
+                title = title,
+                startDate = startDate,
+                endDate = endDate,
+                items = updatedItems,
+                maxDaysBetweenWashes = maxDaysBetweenWashes,
+            ),
+        )
+    }
+
+    fun updateTripDates(
+        tripId: String,
+        startDate: LocalDate,
+        endDate: LocalDate,
+    ) {
+        val trip = trips.value[tripId] ?: return
+        updateTripData(tripId, trip.title, startDate, endDate, trip.maxDaysBetweenWashes)
     }
 
     fun deleteTrip(tripId: String) {

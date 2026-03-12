@@ -123,6 +123,10 @@ class TripDetailsScreenRobot(
     fun assertCategoryHeaderExists(source: ItemSource, category: ItemCategory) {
         composeTestRule.onNodeWithTag("CategoryHeader_${source.name}_${category.name}").assertIsDisplayed()
     }
+
+    fun enterMaxDaysBetweenWashes(days: String) {
+        composeTestRule.onNodeWithTag("EditMaxDaysInput").performTextReplacement(days)
+    }
 }
 
 fun tripDetailsScreenRobot(
