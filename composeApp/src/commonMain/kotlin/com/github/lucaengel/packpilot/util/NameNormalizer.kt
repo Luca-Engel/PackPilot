@@ -19,7 +19,7 @@ interface NameNormalizer {
  * Normalization Steps:
  * 1. Trim leading and trailing whitespaces.
  * 2. Convert to lowercase.
- * 3. Replace multiple internal spaces with a single
+ * 3. Replace multiple internal whitespace characters with a single space.
  */
 class DefaultNameNormalizer : NameNormalizer {
     override fun normalize(name: String): String =
