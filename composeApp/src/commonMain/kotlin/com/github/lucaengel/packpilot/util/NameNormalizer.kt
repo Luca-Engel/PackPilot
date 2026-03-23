@@ -22,9 +22,14 @@ interface NameNormalizer {
  * 3. Replace multiple internal whitespace characters with a single space.
  */
 class DefaultNameNormalizer : NameNormalizer {
+
+    companion object {
+        private val WHITESPACE_REGEX = Regex("\\s+")
+    }
+
     override fun normalize(name: String): String =
         name
             .trim()
             .lowercase()
-            .replace(Regex("\\s+"), " ")
+            .replace(WHITESPACE_REGEX, " ")
 }
