@@ -41,7 +41,17 @@ enum class ItemSource {
     ESSENTIAL,
     ACTIVITY,
     CUSTOM,
+    MERGED,
 }
+
+@Serializable
+data class TripItemSourceInfo(
+    val source: ItemSource,
+    val name: String,
+    val quantity: Int,
+    val originalItemId: String? = null,
+    val addedAt: Long = 0L,
+)
 
 @Serializable
 data class TripItem(
@@ -49,8 +59,7 @@ data class TripItem(
     val name: String,
     val quantity: Int,
     val isPacked: Boolean = false,
-    val originalItemId: String? = null,
-    val source: ItemSource = ItemSource.CUSTOM,
+    val sources: List<TripItemSourceInfo> = emptyList(),
     val category: ItemCategory = ItemCategory.OTHER,
 )
 

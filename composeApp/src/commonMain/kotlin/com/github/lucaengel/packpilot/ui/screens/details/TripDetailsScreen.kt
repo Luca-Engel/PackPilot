@@ -255,6 +255,7 @@ fun TripDetailsScreen(
                             ItemSource.ESSENTIAL -> "Essential Items"
                             ItemSource.ACTIVITY -> "${trip.activityTitle} Items"
                             ItemSource.CUSTOM -> "Added for this trip"
+                            ItemSource.MERGED -> "Multiple Sources"
                         }
                     SectionHeader(title)
                 }
