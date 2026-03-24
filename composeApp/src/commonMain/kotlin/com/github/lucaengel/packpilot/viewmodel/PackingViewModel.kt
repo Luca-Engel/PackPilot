@@ -150,6 +150,7 @@ class PackingViewModel(
                     name = item.name,
                     quantity = qty,
                     originalItemId = item.id,
+                    category = item.category,
                 ),
             )
         }
@@ -162,16 +163,17 @@ class PackingViewModel(
                     name = item.name,
                     quantity = qty,
                     originalItemId = item.id,
+                    category = item.category,
                 ),
             )
         }
 
-        val groupedItems = sourceInfos.groupBy { normalizer.normalize(it.name) }
+        val groupedItems = sourceInfos.groupBy { normalizer.normalize(it.name) to it.category }
         val tripItems =
-            groupedItems.map { (_, sources) ->
+            groupedItems.map { (key, sources) ->
+                val (_, category) = key
                 val totalQty = sources.sumOf { it.quantity }
                 val winningSource = selectWinningSource(sources)
-                val category = repository.items.value[winningSource.originalItemId]?.category ?: ItemCategory.OTHER
 
                 TripItem(
                     id = "trip_item_${Random.nextInt()}",
@@ -208,7 +210,7 @@ class PackingViewModel(
                             val baseItem = itemsMap[source.originalItemId]
                             if (baseItem != null) {
                                 val newQty = calculateQuantity(baseItem, trip.days, trip.maxDaysBetweenWashes)
-                                source.copy(quantity = newQty)
+                                source.copy(quantity = newQty, category = baseItem.category)
                             } else {
                                 source
                             }
@@ -268,7 +270,7 @@ class PackingViewModel(
                             val baseItem = itemsMap[source.originalItemId]
                             if (baseItem != null) {
                                 val newQty = calculateQuantity(baseItem, newDays, maxDaysBetweenWashes)
-                                source.copy(quantity = newQty)
+                                source.copy(quantity = newQty, category = baseItem.category)
                             } else {
                                 source
                             }
@@ -281,6 +283,7 @@ class PackingViewModel(
                     name = winningSource.name,
                     quantity = totalQty,
                     sources = updatedSources,
+                    category = winningSource.category,
                 )
             }
 
@@ -354,6 +357,7 @@ class PackingViewModel(
                                     name = item.name,
                                     quantity = newQuantity - currentAutoQty,
                                     addedAt = Clock.System.now().toEpochMilliseconds(),
+                                    category = item.category,
                                 )
                         }
 
@@ -381,7 +385,12 @@ class PackingViewModel(
         val trip = trips.value[tripId] ?: return
         val updatedItems =
             trip.items.map {
-                if (it.id == tripItemId) it.copy(category = category) else it
+                if (it.id == tripItemId) {
+                    val updatedSources = it.sources.map { source -> source.copy(category = category) }
+                    it.copy(category = category, sources = updatedSources)
+                } else {
+                    it
+                }
             }
         repository.updateTrip(trip.copy(items = updatedItems))
     }
@@ -405,7 +414,11 @@ class PackingViewModel(
         recordHistory()
         val trip = trips.value[tripId] ?: return
         val normalizedName = normalizer.normalize(name)
-        val existingItem = trip.items.find { normalizer.normalize(it.name) == normalizedName }
+        val existingItem =
+            trip.items.find {
+                normalizer.normalize(it.name) == normalizedName &&
+                    it.category == category
+            }
 
         val updatedItems =
             if (existingItem != null) {
@@ -417,6 +430,7 @@ class PackingViewModel(
                                 name = name,
                                 quantity = quantity,
                                 addedAt = Clock.System.now().toEpochMilliseconds(),
+                                category = category,
                             )
                         val newSources = item.sources + newSource
                         val winningSource = selectWinningSource(newSources)
@@ -443,6 +457,7 @@ class PackingViewModel(
                                     name = name,
                                     quantity = quantity,
                                     addedAt = Clock.System.now().toEpochMilliseconds(),
+                                    category = category,
                                 ),
                             ),
                         category = category,

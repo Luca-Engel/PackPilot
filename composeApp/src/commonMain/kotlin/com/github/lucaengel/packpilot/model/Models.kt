@@ -51,6 +51,7 @@ data class TripItemSourceInfo(
     val quantity: Int,
     val originalItemId: String? = null,
     val addedAt: Long = 0L,
+    val category: ItemCategory = ItemCategory.OTHER,
 )
 
 @Serializable
