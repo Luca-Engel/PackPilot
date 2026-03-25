@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.github.lucaengel.packpilot.model.ItemCategory
 import com.github.lucaengel.packpilot.model.PackingItem
@@ -82,26 +83,12 @@ fun ImprovedTripItemRow(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = if (isPacked) FontWeight.Normal else FontWeight.Bold,
                     color = if (isPacked) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        shape = RoundedCornerShape(6.dp),
-                        modifier = Modifier.padding(top = 4.dp),
-                    ) {
-                        Text(
-                            "Qty: ${tripItem.quantity}",
-                            modifier =
-                                Modifier
-                                    .padding(
-                                        horizontal = 8.dp,
-                                        vertical = 2.dp,
-                                    ).testTag("ItemQuantity_${tripItem.name}_${tripItem.id}"),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        )
-                    }
-                    if (isEditMode) {
+                if (isEditMode) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        ItemQuantityBadge(tripItem)
                         CategorySelector(
                             currentCategory = tripItem.category,
                             onCategorySelected = { viewModel.updateTripItemCategory(tripId, tripItem.id, it) },
@@ -140,8 +127,34 @@ fun ImprovedTripItemRow(
                         modifier = Modifier.size(18.dp),
                     )
                 }
+            } else {
+                ItemQuantityBadge(tripItem, modifier = Modifier.padding(start = 8.dp, end = 8.dp))
             }
         }
+    }
+}
+
+@Composable
+fun ItemQuantityBadge(
+    tripItem: TripItem,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        shape = RoundedCornerShape(6.dp),
+        modifier = modifier.padding(top = 4.dp),
+    ) {
+        Text(
+            "Qty: ${tripItem.quantity}",
+            modifier =
+                Modifier
+                    .padding(
+                        horizontal = 8.dp,
+                        vertical = 2.dp,
+                    ).testTag("ItemQuantity_${tripItem.name}_${tripItem.id}"),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+        )
     }
 }
 
