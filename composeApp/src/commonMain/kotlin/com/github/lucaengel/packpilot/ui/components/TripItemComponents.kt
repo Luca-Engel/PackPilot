@@ -103,10 +103,6 @@ fun ImprovedTripItemRow(
                 }
             }
 
-            if (!isEditMode) {
-                ItemQuantityBadge(tripItem, modifier = Modifier.padding(start = 8.dp, end = 8.dp))
-            }
-
             if (isEditMode) {
                 IconButton(
                     onClick = { viewModel.updateTripItemQuantity(tripId, tripItem.id, tripItem.quantity - 1) },
@@ -131,6 +127,8 @@ fun ImprovedTripItemRow(
                         modifier = Modifier.size(18.dp),
                     )
                 }
+            } else {
+                ItemQuantityBadge(tripItem, modifier = Modifier.padding(start = 8.dp, end = 8.dp))
             }
         }
     }
