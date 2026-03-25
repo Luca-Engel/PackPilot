@@ -115,7 +115,7 @@ fun ImprovedTripItemRow(
                         ) {
                             Text(
                                 tripItem.category.displayName,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp).testTag("CategoryLabel_${tripItem.name}"),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                             )
@@ -197,6 +197,7 @@ fun CategorySelector(
                         onCategorySelected(category)
                         expanded = false
                     },
+                    modifier = Modifier.testTag("CategoryItem_${category.name}"),
                 )
             }
         }

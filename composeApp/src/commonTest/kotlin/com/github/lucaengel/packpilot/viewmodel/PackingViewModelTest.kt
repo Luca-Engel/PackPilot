@@ -37,16 +37,16 @@ class PackingViewModelTest {
             val endDate = LocalDate(2024, 1, 10) // 10 days
 
             // Create Trip
-            viewModel.createTrip("Sicily", generalList.id, startDate, endDate)
+            viewModel.createTrip("Test Sicily", generalList.id, startDate, endDate)
 
             viewModel.trips.test {
                 var trips = awaitItem()
                 // Wait for trip to appear (handle async repo update)
-                while (trips.values.none { it.title == "Sicily" }) {
+                while (trips.values.none { it.title == "Test Sicily" }) {
                     trips = awaitItem()
                 }
 
-                val trip = trips.values.find { it.title == "Sicily" }!!
+                val trip = trips.values.find { it.title == "Test Sicily" }!!
 
                 val underwear = trip.items.find { it.name == "Test Underwear" }
                 val toothbrush = trip.items.find { it.name == "Test Toothbrush" }
@@ -311,6 +311,7 @@ class PackingViewModelTest {
 
             val generalList = waitForInitialization(viewModel)
 
+            viewModel.addGeneralItem("Test Underwear", 1, true, category = ItemCategory.CLOTHING)
             viewModel.createTrip("Test", generalList.id, LocalDate(2024, 1, 1), LocalDate(2024, 1, 1))
 
             viewModel.trips.test {
@@ -348,7 +349,7 @@ class PackingViewModelTest {
                     updatedTrips = awaitItem()
                 }
 
-                assertTrue(updatedTrips[tripId]?.items?.first { it.id == itemId }?.isPacked == true)
+                assertEquals(updatedTrips[tripId]?.items?.first { it.id == itemId }?.isPacked, true)
 
                 cancelAndIgnoreRemainingEvents()
             }
@@ -516,6 +517,7 @@ class PackingViewModelTest {
             val viewModel = PackingViewModel(repository)
 
             val list = waitForInitialization(viewModel)
+            viewModel.addGeneralItem("Test Underwear", 1, true, category = ItemCategory.CLOTHING)
             viewModel.createTrip("TripToRemoveItem", list.id, LocalDate(2024, 1, 1), LocalDate(2024, 1, 1))
 
             viewModel.trips.test {
@@ -644,17 +646,47 @@ class PackingViewModelTest {
                                 "1",
                                 "Essential Clothing",
                                 1,
-                                source = ItemSource.ESSENTIAL,
+                                sources =
+                                    listOf(
+                                        TripItemSourceInfo(
+                                            source = ItemSource.ESSENTIAL,
+                                            name = "Essential Clothing",
+                                            quantity = 1,
+                                            category = ItemCategory.CLOTHING,
+                                        ),
+                                    ),
                                 category = ItemCategory.CLOTHING,
                             ),
                             TripItem(
                                 "2",
                                 "Essential Toiletries",
                                 1,
-                                source = ItemSource.ESSENTIAL,
+                                sources =
+                                    listOf(
+                                        TripItemSourceInfo(
+                                            source = ItemSource.ESSENTIAL,
+                                            name = "Essential Toiletries",
+                                            quantity = 1,
+                                            category = ItemCategory.TOILETRIES,
+                                        ),
+                                    ),
                                 category = ItemCategory.TOILETRIES,
                             ),
-                            TripItem("3", "Custom Other", 1, source = ItemSource.CUSTOM, category = ItemCategory.OTHER),
+                            TripItem(
+                                "3",
+                                "Custom Other",
+                                1,
+                                sources =
+                                    listOf(
+                                        TripItemSourceInfo(
+                                            source = ItemSource.CUSTOM,
+                                            name = "Custom Other",
+                                            quantity = 1,
+                                            category = ItemCategory.OTHER,
+                                        ),
+                                    ),
+                                category = ItemCategory.OTHER,
+                            ),
                         ),
                 )
             repository.addTrip(trip)
@@ -698,7 +730,15 @@ class PackingViewModelTest {
                                 "1",
                                 "Essential Only",
                                 1,
-                                source = ItemSource.ESSENTIAL,
+                                sources =
+                                    listOf(
+                                        TripItemSourceInfo(
+                                            source = ItemSource.ESSENTIAL,
+                                            name = "Essential Only",
+                                            quantity = 1,
+                                            category = ItemCategory.CLOTHING,
+                                        ),
+                                    ),
                                 category = ItemCategory.CLOTHING,
                             ),
                         ),

@@ -13,7 +13,8 @@ enum class ItemCategory {
     DOCUMENTS,
     FOOD,
     EQUIPMENT,
-    OTHER;
+    OTHER,
+    ;
 
     val displayName: String
         get() = name.lowercase().replaceFirstChar { it.uppercase() }
@@ -71,7 +72,7 @@ data class Trip(
     val startDate: LocalDate = Clock.System.todayIn(TimeZone.currentSystemDefault()),
     val endDate: LocalDate = Clock.System.todayIn(TimeZone.currentSystemDefault()),
     val items: List<TripItem> = emptyList(),
-    val baseListId: String? = null,
+    val tripTypeId: String? = null,
     val activityTitle: String = "",
     val maxDaysBetweenWashes: Int? = null,
 ) {
@@ -80,10 +81,10 @@ data class Trip(
 
 data class SourceSection(
     val source: ItemSource,
-    val categories: List<CategorySection>
+    val categories: List<CategorySection>,
 )
 
 data class CategorySection(
     val category: ItemCategory,
-    val items: List<TripItem>
+    val items: List<TripItem>,
 )

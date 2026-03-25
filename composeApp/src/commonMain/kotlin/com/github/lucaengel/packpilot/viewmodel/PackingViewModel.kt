@@ -117,28 +117,30 @@ class PackingViewModel(
 
     fun createTrip(
         title: String,
-        listId: String,
+        tripId: String,
         startDate: LocalDate,
         endDate: LocalDate,
         maxDaysBetweenWashes: Int? = null,
     ) {
         recordHistory()
-        val tripId = "trip_${Clock.System.now().toEpochMilliseconds()}_${Random.nextInt(1000)}"
-        val activityTitle = lists.value[listId]?.title ?: ""
+        val tripUid = "trip_${Clock.System.now().toEpochMilliseconds()}_${Random.nextInt(1000)}"
+        val activityTitle = lists.value[tripId]?.title ?: ""
         val tempTrip =
             Trip(
-                id = tripId,
+                id = tripUid,
                 title = title,
                 startDate = startDate,
                 endDate = endDate,
                 activityTitle = activityTitle,
-                baseListId = listId,
+                tripTypeId = tripId,
                 maxDaysBetweenWashes = maxDaysBetweenWashes,
             )
         val days = tempTrip.days
 
-        val listItems = repository.getItemsForList(listId)
+        val allTripItems = repository.getItemsForTrip(tripId)
         val generalItems = repository.getGeneralItems()
+        val generalItemIds = generalItems.map { it.id }
+        val tripTypeItems = allTripItems.filter { it.id !in generalItemIds }
 
         val sourceInfos = mutableListOf<TripItemSourceInfo>()
 
@@ -155,7 +157,7 @@ class PackingViewModel(
             )
         }
 
-        listItems.forEach { item ->
+        tripTypeItems.forEach { item ->
             val qty = calculateQuantity(item, days, maxDaysBetweenWashes)
             sourceInfos.add(
                 TripItemSourceInfo(
@@ -522,6 +524,15 @@ class PackingViewModel(
         syncAffectedTrips(itemId)
     }
 
+    /**
+     * Creates a new general (i.e., for each trip) item.
+     *
+     * @param name The name of the item.
+     * @param baseQuantity The base quantity of the item.
+     * @param isPerDay Whether the item is per day.
+     * @param category The category of the item.
+     * @param quantityPerDays The quantity per day.
+     */
     fun addGeneralItem(
         name: String,
         baseQuantity: Int,

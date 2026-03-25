@@ -37,63 +37,95 @@ class TripDetailsScreenRobot(
     }
 
     fun assertCustomItemQty(qty: String) {
-        // hasText is more robust for TextFields with labels/hints
         composeTestRule.onNodeWithTag("CustomItemQtyInput").assert(hasText(qty))
     }
 
     fun selectCategoryInCustomDialog(category: ItemCategory) {
         composeTestRule.onNodeWithTag("CustomItemCategorySelector").performClick()
-        composeTestRule.onNodeWithText(category.displayName).performClick()
+        composeTestRule.onNodeWithTag("CategoryItem_${category.name}").performClick()
     }
 
     fun clickConfirmAddCustomItem() {
         composeTestRule.onNodeWithTag("ConfirmAddCustomItem").performClick()
     }
 
-    fun toggleItemPacked(name: String) {
-        // Using useUnmergedTree because the parent Row/Surface merges semantics
-        composeTestRule.onNodeWithTag("PackedCheckbox_$name", useUnmergedTree = true).performClick()
+    fun toggleItemPacked(id: String) {
+        composeTestRule.onNodeWithTag("PackedCheckbox_$id", useUnmergedTree = true).performClick()
+    }
+
+    fun assertItemExistsById(id: String) {
+        composeTestRule.onNodeWithTag("TripItemRow_$id").assertIsDisplayed()
     }
 
     fun assertItemExists(name: String) {
-        composeTestRule.onNodeWithTag("TripItemRow_$name").assertIsDisplayed()
+        assertItemExistsById(name)
     }
 
-    fun assertItemNotExists(name: String) {
-        composeTestRule.onNodeWithTag("TripItemRow_$name").assertDoesNotExist()
+    fun assertItemNotExistsById(id: String) {
+        composeTestRule.onNodeWithTag("TripItemRow_$id").assertDoesNotExist()
     }
 
-    fun clickIncreaseQuantity(itemName: String) {
-        composeTestRule.onNodeWithTag("IncreaseQuantity_$itemName", useUnmergedTree = true).performClick()
+    fun assertItemWithNameExists(name: String) {
+        composeTestRule
+            .onNode(
+                hasText(name) and hasAnyAncestor(hasTestTag("TripItemRow_")),
+                useUnmergedTree = true,
+            ).assertIsDisplayed()
+    }
+
+    fun assertItemCountWithName(
+        name: String,
+        count: Int,
+    ) {
+        composeTestRule
+            .onAllNodes(
+                hasText(name) and hasAnyAncestor(hasTestTag("TripItemRow_$name")),
+                useUnmergedTree = true,
+            ).assertCountEquals(count)
+    }
+
+    fun clickIncreaseQuantity(id: String) {
+        composeTestRule.onNodeWithTag("IncreaseQuantity_$id", useUnmergedTree = true).performClick()
     }
 
     fun assertQuantity(
-        itemName: String,
+        id: String,
         qty: Int,
     ) {
         composeTestRule
-            .onNodeWithTag("ItemQuantity_$itemName", useUnmergedTree = true)
+            .onNodeWithTag("ItemQuantity_$id", useUnmergedTree = true)
+            .assertTextEquals("Qty: $qty")
+    }
+
+    fun assertQuantityByName(
+        name: String,
+        qty: Int,
+    ) {
+//        composeTestRule
+//            .onNode(hasTestTag("ItemQuantity_") and hasAnyAncestor(hasAnyChild(hasText(name))), useUnmergedTree = true)
+//            .assertTextEquals("Qty: $qty")
+        composeTestRule
+            .onNodeWithTag("ItemQuantity_$name", useUnmergedTree = true)
             .assertTextEquals("Qty: $qty")
     }
 
     fun assertCategory(
-        itemName: String,
+        id: String,
         category: ItemCategory,
     ) {
-        // In edit mode, it's a selector, in normal mode it's a label
         composeTestRule
             .onNode(
-                hasText(category.displayName) and hasAnyAncestor(hasTestTag("TripItemRow_$itemName")),
+                hasText(category.displayName) and hasAnyAncestor(hasTestTag("TripItemRow_$id")),
                 useUnmergedTree = true,
             ).assertIsDisplayed()
     }
 
     fun changeCategory(
-        itemName: String,
+        id: String,
         newCategory: ItemCategory,
     ) {
-        composeTestRule.onNodeWithTag("CategorySelector_$itemName", useUnmergedTree = true).performClick()
-        composeTestRule.onNodeWithText(newCategory.displayName).performClick()
+        composeTestRule.onNodeWithTag("CategorySelector_$id", useUnmergedTree = true).performClick()
+        composeTestRule.onNodeWithTag("CategoryItem_${newCategory.name}").performClick()
     }
 
     fun clickDatePicker() {
@@ -120,7 +152,10 @@ class TripDetailsScreenRobot(
         composeTestRule.onNodeWithText(title).assertIsDisplayed()
     }
 
-    fun assertCategoryHeaderExists(source: ItemSource, category: ItemCategory) {
+    fun assertCategoryHeaderExists(
+        source: ItemSource,
+        category: ItemCategory,
+    ) {
         composeTestRule.onNodeWithTag("CategoryHeader_${source.name}_${category.name}").assertIsDisplayed()
     }
 
