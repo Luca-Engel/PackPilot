@@ -349,7 +349,7 @@ class TripDetailsScreenTest {
         }
 
     @Test
-    fun datePickerIsShownAndCanBeClosed() =
+    fun datePickerIsShownInEditModeAndCanBeClosed() =
         runTest {
             val testScope = TestScope()
             val repository = PackingRepository(FakeDataStoreManager(), testScope)
@@ -370,6 +370,7 @@ class TripDetailsScreenTest {
             }
 
             tripDetailsScreenRobot(composeTestRule) {
+                clickEdit() // Must be in edit mode now
                 clickDatePicker()
                 assertDatePickerIsDisplayed()
                 clickUpdateDates()
