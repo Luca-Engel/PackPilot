@@ -134,8 +134,8 @@ class PackingRepository(
         return generalListIds.mapNotNull { _items.value[it] }
     }
 
-    fun getItemsForTrip(tripId: String): List<PackingItem> {
-        val list = _lists.value[tripId] ?: return emptyList()
+    fun getItemsForTrip(listId: String): List<PackingItem> {
+        val list = _lists.value[listId] ?: return emptyList()
         return list.itemIds.mapNotNull { _items.value[it] }
     }
 }
