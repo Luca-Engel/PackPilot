@@ -1,9 +1,17 @@
 package com.github.lucaengel.packpilot.ui.screens.home
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 
 class HomeScreenRobot(private val composeTestRule: ComposeContentTestRule) {
+
+    private fun hasTestTagContaining(substring: String): SemanticsMatcher {
+        return SemanticsMatcher("TestTag contains $substring") {
+            it.config.getOrNull(SemanticsProperties.TestTag)?.contains(substring) == true
+        }
+    }
 
     fun clickNewTrip() {
         composeTestRule.onNodeWithContentDescription("New Trip").performClick()
@@ -18,11 +26,11 @@ class HomeScreenRobot(private val composeTestRule: ComposeContentTestRule) {
     }
 
     fun clickTrip(title: String) {
-        composeTestRule.onNodeWithTag("TripCard_$title").performClick()
+        composeTestRule.onNode(hasTestTagContaining("TripCard_$title")).performClick()
     }
 
     fun assertTripExists(title: String) {
-        composeTestRule.onNodeWithTag("TripCard_$title").assertIsDisplayed()
+        composeTestRule.onNode(hasTestTagContaining("TripCard_$title")).assertIsDisplayed()
     }
 
     fun assertNoTripsMessageDisplayed() {

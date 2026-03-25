@@ -1,5 +1,7 @@
 package com.github.lucaengel.packpilot.ui.screens.details
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import com.github.lucaengel.packpilot.model.ItemCategory
@@ -8,6 +10,11 @@ import com.github.lucaengel.packpilot.model.ItemSource
 class TripDetailsScreenRobot(
     private val composeTestRule: ComposeContentTestRule,
 ) {
+    private fun hasTestTagContaining(substring: String): SemanticsMatcher =
+        SemanticsMatcher("TestTag contains $substring") {
+            it.config.getOrNull(SemanticsProperties.TestTag)?.contains(substring) == true
+        }
+
     fun clickEdit() {
         composeTestRule.onNodeWithTag("EditModeButton").performClick()
     }
@@ -50,27 +57,15 @@ class TripDetailsScreenRobot(
     }
 
     fun toggleItemPacked(id: String) {
-        composeTestRule.onNodeWithTag("PackedCheckbox_$id", useUnmergedTree = true).performClick()
+        composeTestRule.onNode(hasTestTagContaining("PackedCheckbox_$id"), useUnmergedTree = true).performClick()
     }
 
     fun assertItemExistsById(id: String) {
-        composeTestRule.onNodeWithTag("TripItemRow_$id").assertIsDisplayed()
+        composeTestRule.onNode(hasTestTagContaining("TripItemRow_$id")).assertIsDisplayed()
     }
 
     fun assertItemExists(name: String) {
         assertItemExistsById(name)
-    }
-
-    fun assertItemNotExistsById(id: String) {
-        composeTestRule.onNodeWithTag("TripItemRow_$id").assertDoesNotExist()
-    }
-
-    fun assertItemWithNameExists(name: String) {
-        composeTestRule
-            .onNode(
-                hasText(name) and hasAnyAncestor(hasTestTag("TripItemRow_")),
-                useUnmergedTree = true,
-            ).assertIsDisplayed()
     }
 
     fun assertItemCountWithName(
@@ -79,22 +74,13 @@ class TripDetailsScreenRobot(
     ) {
         composeTestRule
             .onAllNodes(
-                hasText(name) and hasAnyAncestor(hasTestTag("TripItemRow_$name")),
+                hasText(name) and hasAnyAncestor(hasTestTagContaining("TripItemRow_$name")),
                 useUnmergedTree = true,
             ).assertCountEquals(count)
     }
 
     fun clickIncreaseQuantity(id: String) {
-        composeTestRule.onNodeWithTag("IncreaseQuantity_$id", useUnmergedTree = true).performClick()
-    }
-
-    fun assertQuantity(
-        id: String,
-        qty: Int,
-    ) {
-        composeTestRule
-            .onNodeWithTag("ItemQuantity_$id", useUnmergedTree = true)
-            .assertTextEquals("Qty: $qty")
+        composeTestRule.onNode(hasTestTagContaining("IncreaseQuantity_$id"), useUnmergedTree = true).performClick()
     }
 
     fun assertQuantityByName(
@@ -102,7 +88,7 @@ class TripDetailsScreenRobot(
         qty: Int,
     ) {
         composeTestRule
-            .onNodeWithTag("ItemQuantity_$name", useUnmergedTree = true)
+            .onNode(hasTestTagContaining("ItemQuantity_$name"), useUnmergedTree = true)
             .assertTextEquals("Qty: $qty")
     }
 
@@ -112,7 +98,7 @@ class TripDetailsScreenRobot(
     ) {
         composeTestRule
             .onNode(
-                hasText(category.displayName) and hasAnyAncestor(hasTestTag("TripItemRow_$id")),
+                hasText(category.displayName) and hasAnyAncestor(hasTestTagContaining("TripItemRow_$id")),
                 useUnmergedTree = true,
             ).assertIsDisplayed()
     }
@@ -121,7 +107,7 @@ class TripDetailsScreenRobot(
         id: String,
         newCategory: ItemCategory,
     ) {
-        composeTestRule.onNodeWithTag("CategorySelector_$id", useUnmergedTree = true).performClick()
+        composeTestRule.onNode(hasTestTagContaining("CategorySelector_$id"), useUnmergedTree = true).performClick()
         composeTestRule.onNodeWithTag("CategoryItem_${newCategory.name}").performClick()
     }
 

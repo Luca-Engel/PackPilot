@@ -34,6 +34,9 @@ class PackingRepository(
                     try {
                         _items.value = jsonConfig.decodeFromString(json)
                     } catch (e: Exception) {
+                        println("Error decoding items: ${e.message}")
+                        _items.value = emptyMap()
+                        saveItems()
                     }
                 } else if (_items.value.isEmpty()) {
                     _items.value = emptyMap() // mockItems
@@ -48,6 +51,9 @@ class PackingRepository(
                     try {
                         _lists.value = jsonConfig.decodeFromString(json)
                     } catch (e: Exception) {
+                        println("Error decoding lists: ${e.message}")
+                        _lists.value = emptyMap()
+                        saveLists()
                     }
                 } else if (_lists.value.isEmpty()) {
                     val mockLists =
@@ -66,6 +72,9 @@ class PackingRepository(
                     try {
                         _trips.value = jsonConfig.decodeFromString(json)
                     } catch (e: Exception) {
+                        println("Error decoding trips: ${e.message}")
+                        _trips.value = emptyMap()
+                        saveTrips()
                     }
                 }
             }
