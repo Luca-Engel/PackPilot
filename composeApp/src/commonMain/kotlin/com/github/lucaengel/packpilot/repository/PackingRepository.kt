@@ -52,7 +52,7 @@ class PackingRepository(
                 } else if (_lists.value.isEmpty()) {
                     val mockLists =
                         listOf(
-                            PackingList("g1", "General Essentials", listOf("1", "2", "3"), isGeneral = true),
+                            PackingList("g1", "General Essentials", emptyList(), isGeneral = true),
                         ).associateBy { it.id }
                     _lists.value = mockLists
                     saveLists()
