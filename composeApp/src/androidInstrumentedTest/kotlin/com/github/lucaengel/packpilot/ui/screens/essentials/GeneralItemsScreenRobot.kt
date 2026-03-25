@@ -6,13 +6,13 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import com.github.lucaengel.packpilot.model.ItemCategory
 
-class GeneralItemsScreenRobot(private val composeTestRule: ComposeContentTestRule) {
-
-    private fun hasTestTagContaining(substring: String): SemanticsMatcher {
-        return SemanticsMatcher("TestTag contains $substring") {
+class GeneralItemsScreenRobot(
+    private val composeTestRule: ComposeContentTestRule,
+) {
+    private fun hasTestTagContaining(substring: String): SemanticsMatcher =
+        SemanticsMatcher("TestTag contains $substring") {
             it.config.getOrNull(SemanticsProperties.TestTag)?.contains(substring) == true
         }
-    }
 
     fun clickAddEssential() {
         composeTestRule.onNodeWithContentDescription("Add Essential").performClick()
@@ -46,44 +46,81 @@ class GeneralItemsScreenRobot(private val composeTestRule: ComposeContentTestRul
     @OptIn(ExperimentalTestApi::class)
     fun assertEssentialExists(name: String) {
         // Wait until it exists in case of async updates
-        composeTestRule.waitUntilExactlyOneExists(hasTestTagContaining("BaseItemRow_$name"), timeoutMillis = 5000)
-        composeTestRule.onNode(hasTestTagContaining("BaseItemRow_$name")).assertIsDisplayed()
+        composeTestRule.waitUntilExactlyOneExists(
+            hasTestTagContaining("BaseItemRow_$name"),
+            timeoutMillis = 5000,
+        )
+        composeTestRule
+            .onNode(hasTestTagContaining("BaseItemRow_$name"))
+            .assertIsDisplayed()
     }
 
     fun clickDeleteEssential(name: String) {
-        composeTestRule.onNode(hasTestTagContaining("DeleteBaseItem_$name"), useUnmergedTree = true).performClick()
+        composeTestRule
+            .onNode(hasTestTagContaining("DeleteBaseItem_$name"), useUnmergedTree = true)
+            .performClick()
     }
 
     fun clickIncreaseQuantity(name: String) {
-        composeTestRule.onNode(hasTestTagContaining("IncreaseBaseQty_$name"), useUnmergedTree = true).performClick()
+        composeTestRule
+            .onNode(hasTestTagContaining("IncreaseBaseQty_$name"), useUnmergedTree = true)
+            .performClick()
     }
 
     fun clickIncreaseQuantityPerDays(name: String) {
-        composeTestRule.onNode(hasTestTagContaining("IncreaseBaseQtyPerDays_$name"), useUnmergedTree = true).performClick()
+        composeTestRule
+            .onNode(hasTestTagContaining("IncreaseBaseQtyPerDays_$name"), useUnmergedTree = true)
+            .performClick()
     }
 
-    fun assertQuantity(name: String, qty: Int) {
-        composeTestRule.onNode(hasTestTagContaining("BaseQtyText_$name"), useUnmergedTree = true).assertTextEquals("$qty")
+    fun assertQuantity(
+        name: String,
+        qty: Int,
+    ) {
+        composeTestRule
+            .onNode(hasTestTagContaining("BaseQtyText_$name"), useUnmergedTree = true)
+            .assertTextEquals("$qty")
     }
 
-    fun assertQuantityPerDays(name: String, qty: Int) {
-        composeTestRule.onNode(hasTestTagContaining("BaseQtyPerDaysText_$name"), useUnmergedTree = true).assertTextEquals("$qty")
+    fun assertQuantityPerDays(
+        name: String,
+        qty: Int,
+    ) {
+        composeTestRule
+            .onNode(hasTestTagContaining("BaseQtyPerDaysText_$name"), useUnmergedTree = true)
+            .assertTextEquals("$qty")
     }
 
-    fun assertCategory(itemName: String, category: ItemCategory) {
+    fun assertCategory(
+        itemName: String,
+        category: ItemCategory,
+    ) {
         // Using a more robust selector that works even if nodes are merged
-        composeTestRule.onNode(
-            hasText(category.displayName) and hasAnyAncestor(hasTestTagContaining("BaseCategorySelector_$itemName")),
-            useUnmergedTree = true
-        ).assertIsDisplayed()
+        composeTestRule
+            .onNode(
+                hasText(
+                    category.displayName,
+                ) and hasAnyAncestor(hasTestTagContaining("BaseCategorySelector_$itemName")),
+                useUnmergedTree = true,
+            ).assertIsDisplayed()
     }
 
-    fun changeCategory(itemName: String, newCategory: ItemCategory) {
-        composeTestRule.onNode(hasTestTagContaining("BaseCategorySelector_$itemName"), useUnmergedTree = true).performClick()
+    fun changeCategory(
+        itemName: String,
+        newCategory: ItemCategory,
+    ) {
+        composeTestRule
+            .onNode(
+                hasTestTagContaining("BaseCategorySelector_$itemName"),
+                useUnmergedTree = true,
+            ).performClick()
         composeTestRule.onNodeWithText(newCategory.displayName).performClick()
     }
 }
 
-fun generalItemsScreenRobot(composeTestRule: ComposeContentTestRule, block: GeneralItemsScreenRobot.() -> Unit) {
+fun generalItemsScreenRobot(
+    composeTestRule: ComposeContentTestRule,
+    block: GeneralItemsScreenRobot.() -> Unit,
+) {
     GeneralItemsScreenRobot(composeTestRule).apply(block)
 }
