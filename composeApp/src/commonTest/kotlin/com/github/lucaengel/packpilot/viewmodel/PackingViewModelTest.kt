@@ -349,7 +349,10 @@ class PackingViewModelTest {
                     updatedTrips = awaitItem()
                 }
 
-                assertEquals(updatedTrips[tripId]?.items?.first { it.id == itemId }?.isPacked, true)
+                assertEquals(
+                    true,
+                    updatedTrips[tripId]?.items?.first { it.id == itemId }?.isPacked,
+                )
 
                 cancelAndIgnoreRemainingEvents()
             }
