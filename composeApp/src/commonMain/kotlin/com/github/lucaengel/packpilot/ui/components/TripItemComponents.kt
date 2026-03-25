@@ -55,7 +55,7 @@ fun ImprovedTripItemRow(
                 .fillMaxWidth()
                 .clip(
                     RoundedCornerShape(16.dp),
-                ).testTag("TripItemRow_${tripItem.name}_${tripItem.id}"),
+                ).testTag("TripItemRow_${tripItem.name}_${tripItem.id}_CAT_${tripItem.category.name}"),
         color =
             if (isPacked) {
                 MaterialTheme.colorScheme.surfaceVariant.copy(
@@ -112,22 +112,6 @@ fun ImprovedTripItemRow(
                                         top = 4.dp,
                                     ).testTag("CategorySelector_${tripItem.name}_${tripItem.id}"),
                         )
-                    } else {
-                        Surface(
-                            color = MaterialTheme.colorScheme.tertiaryContainer,
-                            shape = RoundedCornerShape(6.dp),
-                            modifier = Modifier.padding(start = 8.dp, top = 4.dp),
-                        ) {
-                            Text(
-                                tripItem.category.displayName,
-                                modifier =
-                                    Modifier
-                                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                                        .testTag("CategoryLabel_${tripItem.name}_${tripItem.id}"),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer,
-                            )
-                        }
                     }
                 }
             }
