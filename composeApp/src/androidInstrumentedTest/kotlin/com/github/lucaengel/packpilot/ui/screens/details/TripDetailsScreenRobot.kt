@@ -101,9 +101,6 @@ class TripDetailsScreenRobot(
         name: String,
         qty: Int,
     ) {
-//        composeTestRule
-//            .onNode(hasTestTag("ItemQuantity_") and hasAnyAncestor(hasAnyChild(hasText(name))), useUnmergedTree = true)
-//            .assertTextEquals("Qty: $qty")
         composeTestRule
             .onNodeWithTag("ItemQuantity_$name", useUnmergedTree = true)
             .assertTextEquals("Qty: $qty")
