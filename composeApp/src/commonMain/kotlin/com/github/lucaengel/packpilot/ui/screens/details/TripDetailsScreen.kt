@@ -143,9 +143,6 @@ fun TripDetailsScreen(
                             Icon(Icons.Default.Edit, "Edit")
                         }
                     }
-                    IconButton(onClick = { showDatePicker = true }, modifier = Modifier.testTag("DatePickerButton")) {
-                        Icon(Icons.Default.DateRange, "Change Dates")
-                    }
                     IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.testTag("DeleteTripButton")) {
                         Icon(Icons.Default.Delete, "Delete Trip", tint = MaterialTheme.colorScheme.error)
                     }
@@ -198,6 +195,23 @@ fun TripDetailsScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.secondary,
                             )
+
+                            if (isEditMode) {
+                                IconButton(
+                                    onClick = { showDatePicker = true },
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .padding(start = 4.dp)
+                                        .testTag("DatePickerButton")
+                                ) {
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        "Change Dates",
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
                         }
                     }
 
