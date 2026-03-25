@@ -1,11 +1,18 @@
 package com.github.lucaengel.packpilot.ui.screens.types
 
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import com.github.lucaengel.packpilot.model.ItemCategory
 
 class ManageTripTypesRobot(private val composeTestRule: ComposeContentTestRule) {
+
+    private fun hasTestTagContaining(substring: String): SemanticsMatcher {
+        return SemanticsMatcher("TestTag contains $substring") {
+            it.config.getOrNull(SemanticsProperties.TestTag)?.contains(substring) == true
+        }
+    }
 
     fun clickNewType() {
         composeTestRule.onNodeWithContentDescription("New Type").performClick()
@@ -21,8 +28,9 @@ class ManageTripTypesRobot(private val composeTestRule: ComposeContentTestRule) 
 
     @OptIn(ExperimentalTestApi::class)
     fun selectType(name: String) {
-        composeTestRule.waitUntilExactlyOneExists(hasTestTag("TripType_$name"), timeoutMillis = 5000)
-        composeTestRule.onNodeWithTag("TripType_$name").performClick()
+        // We haven't changed TripType_ yet, but using containing for future-proofing
+        composeTestRule.waitUntilExactlyOneExists(hasTestTagContaining("TripType_$name"), timeoutMillis = 5000)
+        composeTestRule.onNode(hasTestTagContaining("TripType_$name")).performClick()
         // Wait for the sidebar animation and list loading to settle
         composeTestRule.waitForIdle()
     }
@@ -62,33 +70,33 @@ class ManageTripTypesRobot(private val composeTestRule: ComposeContentTestRule) 
 
     @OptIn(ExperimentalTestApi::class)
     fun assertItemInType(itemName: String) {
-        composeTestRule.waitUntilExactlyOneExists(hasTestTag("BaseItemRow_$itemName"), timeoutMillis = 5000)
-        composeTestRule.onNodeWithTag("BaseItemRow_$itemName").assertIsDisplayed()
+        composeTestRule.waitUntilExactlyOneExists(hasTestTagContaining("BaseItemRow_$itemName"), timeoutMillis = 5000)
+        composeTestRule.onNode(hasTestTagContaining("BaseItemRow_$itemName")).assertIsDisplayed()
     }
 
     fun assertQuantity(name: String, qty: Int) {
-        composeTestRule.onNodeWithTag("BaseQtyText_$name", useUnmergedTree = true).assertTextEquals("$qty")
+        composeTestRule.onNode(hasTestTagContaining("BaseQtyText_$name"), useUnmergedTree = true).assertTextEquals("$qty")
     }
 
     fun assertQuantityPerDays(name: String, qty: Int) {
-        composeTestRule.onNodeWithTag("BaseQtyPerDaysText_$name", useUnmergedTree = true).assertTextEquals("$qty")
+        composeTestRule.onNode(hasTestTagContaining("BaseQtyPerDaysText_$name"), useUnmergedTree = true).assertTextEquals("$qty")
     }
 
     @OptIn(ExperimentalTestApi::class)
     fun assertCategory(itemName: String, category: ItemCategory) {
         // Wait for the item row to exist first
-        composeTestRule.waitUntilExactlyOneExists(hasTestTag("BaseItemRow_$itemName"), timeoutMillis = 5000)
+        composeTestRule.waitUntilExactlyOneExists(hasTestTagContaining("BaseItemRow_$itemName"), timeoutMillis = 5000)
         
         // Match the text anywhere within the row of this specific item. 
         // This is extremely robust against layout changes and semantics merging.
-        val matcher = hasText(category.displayName) and hasAnyAncestor(hasTestTag("BaseItemRow_$itemName"))
+        val matcher = hasText(category.displayName) and hasAnyAncestor(hasTestTagContaining("BaseItemRow_$itemName"))
         
         composeTestRule.waitUntilExactlyOneExists(matcher, timeoutMillis = 5000)
         composeTestRule.onNode(matcher).assertExists()
     }
 
     fun changeCategory(itemName: String, newCategory: ItemCategory) {
-        composeTestRule.onNodeWithTag("BaseCategorySelector_$itemName", useUnmergedTree = true).performClick()
+        composeTestRule.onNode(hasTestTagContaining("BaseCategorySelector_$itemName"), useUnmergedTree = true).performClick()
         composeTestRule.onNodeWithText(newCategory.displayName).performClick()
     }
 

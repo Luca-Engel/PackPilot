@@ -13,7 +13,8 @@ enum class ItemCategory {
     DOCUMENTS,
     FOOD,
     EQUIPMENT,
-    OTHER;
+    OTHER,
+    ;
 
     val displayName: String
         get() = name.lowercase().replaceFirstChar { it.uppercase() }
@@ -41,7 +42,18 @@ enum class ItemSource {
     ESSENTIAL,
     ACTIVITY,
     CUSTOM,
+    MERGED,
 }
+
+@Serializable
+data class TripItemSourceInfo(
+    val source: ItemSource,
+    val name: String,
+    val quantity: Int,
+    val originalItemId: String? = null,
+    val addedAt: Long = 0L,
+    val category: ItemCategory = ItemCategory.OTHER,
+)
 
 @Serializable
 data class TripItem(
@@ -49,8 +61,7 @@ data class TripItem(
     val name: String,
     val quantity: Int,
     val isPacked: Boolean = false,
-    val originalItemId: String? = null,
-    val source: ItemSource = ItemSource.CUSTOM,
+    val sources: List<TripItemSourceInfo> = emptyList(),
     val category: ItemCategory = ItemCategory.OTHER,
 )
 
@@ -61,7 +72,7 @@ data class Trip(
     val startDate: LocalDate = Clock.System.todayIn(TimeZone.currentSystemDefault()),
     val endDate: LocalDate = Clock.System.todayIn(TimeZone.currentSystemDefault()),
     val items: List<TripItem> = emptyList(),
-    val baseListId: String? = null,
+    val tripTypeId: String? = null,
     val activityTitle: String = "",
     val maxDaysBetweenWashes: Int? = null,
 ) {
@@ -70,10 +81,10 @@ data class Trip(
 
 data class SourceSection(
     val source: ItemSource,
-    val categories: List<CategorySection>
+    val categories: List<CategorySection>,
 )
 
 data class CategorySection(
     val category: ItemCategory,
-    val items: List<TripItem>
+    val items: List<TripItem>,
 )

@@ -2,21 +2,13 @@ package com.github.lucaengel.packpilot.ui.screens.details
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import com.github.lucaengel.packpilot.model.ItemCategory
-import com.github.lucaengel.packpilot.model.ItemSource
-import com.github.lucaengel.packpilot.model.Trip
-import com.github.lucaengel.packpilot.model.TripItem
+import com.github.lucaengel.packpilot.model.*
 import com.github.lucaengel.packpilot.repository.FakeDataStoreManager
 import com.github.lucaengel.packpilot.repository.PackingRepository
 import com.github.lucaengel.packpilot.viewmodel.PackingViewModel
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.Clock
-import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.plus
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.*
 import org.junit.Rule
 import org.junit.Test
 
@@ -92,7 +84,7 @@ class TripDetailsScreenTest {
             }
 
             tripDetailsScreenRobot(composeTestRule) {
-                assertQuantity("T-Shirts", 5)
+                assertQuantityByName("T-Shirts", 5)
             }
         }
 
@@ -117,7 +109,7 @@ class TripDetailsScreenTest {
             }
 
             tripDetailsScreenRobot(composeTestRule) {
-                assertQuantity("Socks", 5)
+                assertQuantityByName("Socks", 5)
             }
         }
 
@@ -145,7 +137,7 @@ class TripDetailsScreenTest {
                 // effectiveDays = 3
                 // baseQty = 3
                 // +1 buffer
-                assertQuantity("T-Shirts", 4)
+                assertQuantityByName("T-Shirts", 4)
             }
         }
 
@@ -171,7 +163,7 @@ class TripDetailsScreenTest {
 
             tripDetailsScreenRobot(composeTestRule) {
                 // baseQuantity = 1 -> no washing for items you don't have a given interval of using for
-                assertQuantity("Jacket", 1)
+                assertQuantityByName("Jacket", 1)
             }
         }
 
@@ -197,7 +189,7 @@ class TripDetailsScreenTest {
 
             tripDetailsScreenRobot(composeTestRule) {
                 // expect 10 since once per day and washing does not affect the count
-                assertQuantity("Toothbrush", 10)
+                assertQuantityByName("Toothbrush", 10)
             }
         }
 
@@ -226,7 +218,7 @@ class TripDetailsScreenTest {
                 // effectiveDays = 3
                 // ceil(1*3/2) = 2
                 // +1 buffer
-                assertQuantity("Shirt", 3)
+                assertQuantityByName("Shirt", 3)
             }
         }
 
@@ -255,7 +247,7 @@ class TripDetailsScreenTest {
                 // effectiveDays = 3
                 // ceil(6*3/5) = 4
                 // +1 buffer
-                assertQuantity("Shirt", 5)
+                assertQuantityByName("Shirt", 5)
             }
         }
 
@@ -280,7 +272,7 @@ class TripDetailsScreenTest {
             }
 
             tripDetailsScreenRobot(composeTestRule) {
-                assertQuantity("T-Shirts", 7) // No washing logic yet
+                assertQuantityByName("T-Shirts", 7) // No washing logic yet
 
                 clickEdit()
                 enterMaxDaysBetweenWashes("3")
@@ -288,7 +280,7 @@ class TripDetailsScreenTest {
                 // effectiveDays = 3
                 // baseQty = 3
                 // +1 buffer
-                assertQuantity("T-Shirts", 4)
+                assertQuantityByName("T-Shirts", 4)
             }
         }
 
@@ -320,11 +312,11 @@ class TripDetailsScreenTest {
 
             tripDetailsScreenRobot(composeTestRule) {
                 clickEdit()
-                assertQuantity("Umbrella", 1)
+                assertQuantityByName("Umbrella", 1)
 
                 clickIncreaseQuantity("Umbrella")
 
-                assertQuantity("Umbrella", 2)
+                assertQuantityByName("Umbrella", 2)
             }
         }
 
@@ -465,21 +457,42 @@ class TripDetailsScreenTest {
                                 "1",
                                 "Underwear",
                                 1,
-                                source = ItemSource.ESSENTIAL,
+                                sources = listOf(
+                                    TripItemSourceInfo(
+                                        source = ItemSource.ESSENTIAL,
+                                        name = "Underwear",
+                                        quantity = 1,
+                                        category = ItemCategory.CLOTHING,
+                                    )
+                                ),
                                 category = ItemCategory.CLOTHING,
                             ),
                             TripItem(
                                 "2",
                                 "Toothbrush",
                                 1,
-                                source = ItemSource.ESSENTIAL,
+                                sources = listOf(
+                                    TripItemSourceInfo(
+                                        source = ItemSource.ESSENTIAL,
+                                        name = "Toothbrush",
+                                        quantity = 1,
+                                        category = ItemCategory.TOILETRIES,
+                                    )
+                                ),
                                 category = ItemCategory.TOILETRIES,
                             ),
                             TripItem(
                                 "3",
                                 "Umbrella",
                                 1,
-                                source = ItemSource.CUSTOM,
+                                sources = listOf(
+                                    TripItemSourceInfo(
+                                        source = ItemSource.CUSTOM,
+                                        name = "Umbrella",
+                                        quantity = 1,
+                                        category = ItemCategory.OTHER,
+                                    )
+                                ),
                                 category = ItemCategory.OTHER,
                             ),
                         ),

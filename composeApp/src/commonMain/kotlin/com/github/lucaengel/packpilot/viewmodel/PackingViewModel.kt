@@ -2,6 +2,7 @@ package com.github.lucaengel.packpilot.viewmodel
 
 import com.github.lucaengel.packpilot.model.*
 import com.github.lucaengel.packpilot.repository.PackingRepository
+import com.github.lucaengel.packpilot.util.DefaultNameNormalizer
 import kotlinx.coroutines.flow.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
@@ -19,6 +20,8 @@ data class AppState(
 class PackingViewModel(
     private val repository: PackingRepository,
 ) {
+    private val normalizer = DefaultNameNormalizer()
+
     val items = repository.items
     val lists = repository.lists
     val trips = repository.trips
@@ -114,60 +117,137 @@ class PackingViewModel(
 
     fun createTrip(
         title: String,
-        listId: String,
+        tripId: String,
         startDate: LocalDate,
         endDate: LocalDate,
         maxDaysBetweenWashes: Int? = null,
     ) {
         recordHistory()
-        val tripId = "trip_${Clock.System.now().toEpochMilliseconds()}_${Random.nextInt(1000)}"
-        val activityTitle = lists.value[listId]?.title ?: ""
+        val tripUid = "trip_${Clock.System.now().toEpochMilliseconds()}_${Random.nextInt(1000)}"
+        val activityTitle = lists.value[tripId]?.title ?: ""
         val tempTrip =
             Trip(
-                id = tripId,
+                id = tripUid,
                 title = title,
                 startDate = startDate,
                 endDate = endDate,
                 activityTitle = activityTitle,
-                baseListId = listId,
+                tripTypeId = tripId,
                 maxDaysBetweenWashes = maxDaysBetweenWashes,
             )
         val days = tempTrip.days
 
-        val listItems = repository.getItemsForList(listId)
+        val allTripItems = repository.getItemsForTrip(tripId)
         val generalItems = repository.getGeneralItems()
+        val generalItemIds = generalItems.map { it.id }
+        val tripTypeItems = allTripItems.filter { it.id !in generalItemIds }
 
-        val tripItems = mutableListOf<TripItem>()
+        val sourceInfos = mutableListOf<TripItemSourceInfo>()
 
         generalItems.forEach { item ->
             val qty = calculateQuantity(item, days, maxDaysBetweenWashes)
-            tripItems.add(
-                TripItem(
-                    id = "${item.id}_${Random.nextInt()}",
+            sourceInfos.add(
+                TripItemSourceInfo(
+                    source = ItemSource.ESSENTIAL,
                     name = item.name,
                     quantity = qty,
                     originalItemId = item.id,
-                    source = ItemSource.ESSENTIAL,
                     category = item.category,
                 ),
             )
         }
 
-        listItems.forEach { item ->
+        tripTypeItems.forEach { item ->
             val qty = calculateQuantity(item, days, maxDaysBetweenWashes)
-            tripItems.add(
-                TripItem(
-                    id = "${item.id}_${Random.nextInt()}",
+            sourceInfos.add(
+                TripItemSourceInfo(
+                    source = ItemSource.ACTIVITY,
                     name = item.name,
                     quantity = qty,
                     originalItemId = item.id,
-                    source = ItemSource.ACTIVITY,
                     category = item.category,
                 ),
             )
         }
+
+        val groupedItems = sourceInfos.groupBy { normalizer.normalize(it.name) to it.category }
+        val tripItems =
+            groupedItems.map { (key, sources) ->
+                val (_, category) = key
+                val totalQty = sources.sumOf { it.quantity }
+                val winningSource = selectWinningSource(sources)
+
+                TripItem(
+                    id = "trip_item_${Random.nextInt()}",
+                    name = winningSource.name,
+                    quantity = totalQty,
+                    sources = sources,
+                    category = category,
+                )
+            }
 
         repository.addTrip(tempTrip.copy(items = tripItems))
+    }
+
+    private fun selectWinningSource(sources: List<TripItemSourceInfo>): TripItemSourceInfo {
+        // Hierarchy: CUSTOM (most recent) > ACTIVITY > ESSENTIAL
+        return sources
+            .sortedWith(
+                compareByDescending<TripItemSourceInfo> { it.source == ItemSource.CUSTOM }
+                    .thenByDescending { it.addedAt }
+                    .thenByDescending { it.source == ItemSource.ACTIVITY }
+                    .thenByDescending { it.source == ItemSource.ESSENTIAL },
+            ).first()
+    }
+
+    private fun refreshTrip(trip: Trip): Trip {
+        val itemsMap = items.value
+        val updatedItems =
+            trip.items.map { tripItem ->
+                val updatedSources =
+                    tripItem.sources.map { source ->
+                        if (source.source == ItemSource.CUSTOM || source.originalItemId == null) {
+                            source
+                        } else {
+                            val baseItem = itemsMap[source.originalItemId]
+                            if (baseItem != null) {
+                                val newQty = calculateQuantity(baseItem, trip.days, trip.maxDaysBetweenWashes)
+                                source.copy(quantity = newQty, category = baseItem.category)
+                            } else {
+                                source
+                            }
+                        }
+                    }
+                val totalQty = updatedSources.sumOf { it.quantity }
+                val winningSource = selectWinningSource(updatedSources)
+                val updatedCategory =
+                    if (winningSource.originalItemId != null) {
+                        itemsMap[winningSource.originalItemId]?.category ?: tripItem.category
+                    } else {
+                        tripItem.category
+                    }
+
+                tripItem.copy(
+                    name = winningSource.name,
+                    quantity = totalQty,
+                    sources = updatedSources,
+                    category = updatedCategory,
+                )
+            }
+        return trip.copy(items = updatedItems)
+    }
+
+    private fun syncAffectedTrips(itemId: String) {
+        val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+        trips.value.values
+            .filter { trip ->
+                trip.startDate >= today &&
+                    trip.items.any { item ->
+                        item.sources.any { it.originalItemId == itemId }
+                    }
+            }.forEach { trip ->
+                repository.updateTrip(refreshTrip(trip))
+            }
     }
 
     fun updateTripData(
@@ -183,18 +263,30 @@ class PackingViewModel(
 
         val itemsMap = items.value
         val updatedItems =
-            trip.items.map { item ->
-                if (item.source == ItemSource.CUSTOM || item.originalItemId == null) {
-                    item
-                } else {
-                    val baseItem = itemsMap[item.originalItemId]
-                    if (baseItem != null) {
-                        val newQty = calculateQuantity(baseItem, newDays, maxDaysBetweenWashes)
-                        item.copy(quantity = newQty)
-                    } else {
-                        item
+            trip.items.map { tripItem ->
+                val updatedSources =
+                    tripItem.sources.map { source ->
+                        if (source.source == ItemSource.CUSTOM || source.originalItemId == null) {
+                            source
+                        } else {
+                            val baseItem = itemsMap[source.originalItemId]
+                            if (baseItem != null) {
+                                val newQty = calculateQuantity(baseItem, newDays, maxDaysBetweenWashes)
+                                source.copy(quantity = newQty, category = baseItem.category)
+                            } else {
+                                source
+                            }
+                        }
                     }
-                }
+                val totalQty = updatedSources.sumOf { it.quantity }
+                val winningSource = selectWinningSource(updatedSources)
+
+                tripItem.copy(
+                    name = winningSource.name,
+                    quantity = totalQty,
+                    sources = updatedSources,
+                    category = winningSource.category,
+                )
             }
 
         repository.updateTrip(
@@ -243,8 +335,45 @@ class PackingViewModel(
         recordHistory()
         val trip = trips.value[tripId] ?: return
         val updatedItems =
-            trip.items.map {
-                if (it.id == tripItemId) it.copy(quantity = newQuantity) else it
+            trip.items.map { item ->
+                if (item.id == tripItemId) {
+                    val currentAutoQty = item.sources.filter { it.source != ItemSource.CUSTOM }.sumOf { it.quantity }
+                    val customSource = item.sources.find { it.source == ItemSource.CUSTOM && it.originalItemId == null }
+
+                    val newSources =
+                        if (customSource != null) {
+                            item.sources.map {
+                                if (it === customSource) {
+                                    it.copy(
+                                        quantity = newQuantity - currentAutoQty,
+                                        addedAt = Clock.System.now().toEpochMilliseconds(),
+                                    )
+                                } else {
+                                    it
+                                }
+                            }
+                        } else {
+                            item.sources +
+                                TripItemSourceInfo(
+                                    source = ItemSource.CUSTOM,
+                                    name = item.name,
+                                    quantity = newQuantity - currentAutoQty,
+                                    addedAt = Clock.System.now().toEpochMilliseconds(),
+                                    category = item.category,
+                                )
+                        }
+
+                    val finalSources = newSources.filter { it.quantity != 0 || it.source != ItemSource.CUSTOM }
+                    val winningSource = selectWinningSource(finalSources)
+
+                    item.copy(
+                        name = winningSource.name,
+                        quantity = newQuantity,
+                        sources = finalSources,
+                    )
+                } else {
+                    item
+                }
             }
         repository.updateTrip(trip.copy(items = updatedItems))
     }
@@ -258,7 +387,12 @@ class PackingViewModel(
         val trip = trips.value[tripId] ?: return
         val updatedItems =
             trip.items.map {
-                if (it.id == tripItemId) it.copy(category = category) else it
+                if (it.id == tripItemId) {
+                    val updatedSources = it.sources.map { source -> source.copy(category = category) }
+                    it.copy(category = category, sources = updatedSources)
+                } else {
+                    it
+                }
             }
         repository.updateTrip(trip.copy(items = updatedItems))
     }
@@ -281,15 +415,58 @@ class PackingViewModel(
     ) {
         recordHistory()
         val trip = trips.value[tripId] ?: return
-        val newItem =
-            TripItem(
-                id = "custom_${Random.nextInt()}",
-                name = name,
-                quantity = quantity,
-                source = ItemSource.CUSTOM,
-                category = category,
-            )
-        repository.updateTrip(trip.copy(items = trip.items + newItem))
+        val normalizedName = normalizer.normalize(name)
+        val existingItem =
+            trip.items.find {
+                normalizer.normalize(it.name) == normalizedName &&
+                    it.category == category
+            }
+
+        val updatedItems =
+            if (existingItem != null) {
+                trip.items.map { item ->
+                    if (item.id == existingItem.id) {
+                        val newSource =
+                            TripItemSourceInfo(
+                                source = ItemSource.CUSTOM,
+                                name = name,
+                                quantity = quantity,
+                                addedAt = Clock.System.now().toEpochMilliseconds(),
+                                category = category,
+                            )
+                        val newSources = item.sources + newSource
+                        val winningSource = selectWinningSource(newSources)
+                        item.copy(
+                            name = winningSource.name,
+                            quantity = item.quantity + quantity,
+                            sources = newSources,
+                            category = if (category != ItemCategory.OTHER) category else item.category,
+                        )
+                    } else {
+                        item
+                    }
+                }
+            } else {
+                val newItem =
+                    TripItem(
+                        id = "custom_${Random.nextInt()}",
+                        name = name,
+                        quantity = quantity,
+                        sources =
+                            listOf(
+                                TripItemSourceInfo(
+                                    source = ItemSource.CUSTOM,
+                                    name = name,
+                                    quantity = quantity,
+                                    addedAt = Clock.System.now().toEpochMilliseconds(),
+                                    category = category,
+                                ),
+                            ),
+                        category = category,
+                    )
+                trip.items + newItem
+            }
+        repository.updateTrip(trip.copy(items = updatedItems))
     }
 
     fun createNewTripType(title: String) {
@@ -344,8 +521,18 @@ class PackingViewModel(
         recordHistory()
         val item = items.value[itemId] ?: return
         repository.addItem(item.copy(category = category))
+        syncAffectedTrips(itemId)
     }
 
+    /**
+     * Creates a new general (i.e., for each trip) item.
+     *
+     * @param name The name of the item.
+     * @param baseQuantity The base quantity of the item.
+     * @param isPerDay Whether the item is per day.
+     * @param category The category of the item.
+     * @param quantityPerDays The quantity per day.
+     */
     fun addGeneralItem(
         name: String,
         baseQuantity: Int,
@@ -384,6 +571,7 @@ class PackingViewModel(
         recordHistory()
         val item = items.value[itemId] ?: return
         repository.addItem(item.copy(baseQuantity = newQuantity))
+        syncAffectedTrips(itemId)
     }
 
     fun updateBaseItemQuantityPerDays(
@@ -394,12 +582,14 @@ class PackingViewModel(
         recordHistory()
         val item = items.value[itemId] ?: return
         repository.addItem(item.copy(quantityPerDays = newQuantityPerDays))
+        syncAffectedTrips(itemId)
     }
 
     fun toggleBaseItemPerDay(itemId: String) {
         recordHistory()
         val item = items.value[itemId] ?: return
         repository.addItem(item.copy(isPerDay = !item.isPerDay))
+        syncAffectedTrips(itemId)
     }
 
     fun removeGeneralItem(itemId: String) {
@@ -443,13 +633,21 @@ class PackingViewModel(
         trips.map { tripsMap ->
             val trip = tripsMap[tripId] ?: return@map emptyList()
 
-            val sourceOrder = listOf(ItemSource.ESSENTIAL, ItemSource.ACTIVITY, ItemSource.CUSTOM)
+            val sourceOrder = listOf(ItemSource.ESSENTIAL, ItemSource.ACTIVITY, ItemSource.CUSTOM, ItemSource.MERGED)
             val categoryOrder = ItemCategory.entries
 
-            val itemsBySource = trip.items.groupBy { it.source }
+            val itemsByEffectiveSource =
+                trip.items.groupBy { item ->
+                    val distinctSources = item.sources.map { it.source }.distinct()
+                    if (distinctSources.size > 1) {
+                        ItemSource.MERGED
+                    } else {
+                        distinctSources.firstOrNull() ?: ItemSource.CUSTOM
+                    }
+                }
 
             sourceOrder.mapNotNull { source ->
-                val itemsInSource = itemsBySource[source] ?: return@mapNotNull null
+                val itemsInSource = itemsByEffectiveSource[source] ?: return@mapNotNull null
                 val itemsByCategory = itemsInSource.groupBy { it.category }
 
                 val categories =

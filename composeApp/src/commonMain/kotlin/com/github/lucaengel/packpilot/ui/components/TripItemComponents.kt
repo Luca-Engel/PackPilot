@@ -50,7 +50,12 @@ fun ImprovedTripItemRow(
 ) {
     val isPacked = tripItem.isPacked
     Surface(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).testTag("TripItemRow_${tripItem.name}"),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(
+                    RoundedCornerShape(16.dp),
+                ).testTag("TripItemRow_${tripItem.name}_${tripItem.id}"),
         color =
             if (isPacked) {
                 MaterialTheme.colorScheme.surfaceVariant.copy(
@@ -68,7 +73,7 @@ fun ImprovedTripItemRow(
             Checkbox(
                 checked = isPacked,
                 onCheckedChange = { viewModel.togglePacked(tripId, tripItem.id) },
-                modifier = Modifier.testTag("PackedCheckbox_${tripItem.name}"),
+                modifier = Modifier.testTag("PackedCheckbox_${tripItem.name}_${tripItem.id}"),
             )
 
             Column(modifier = Modifier.weight(1f)) {
@@ -91,7 +96,7 @@ fun ImprovedTripItemRow(
                                     .padding(
                                         horizontal = 8.dp,
                                         vertical = 2.dp,
-                                    ).testTag("ItemQuantity_${tripItem.name}"),
+                                    ).testTag("ItemQuantity_${tripItem.name}_${tripItem.id}"),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
@@ -105,7 +110,7 @@ fun ImprovedTripItemRow(
                                     .padding(
                                         start = 8.dp,
                                         top = 4.dp,
-                                    ).testTag("CategorySelector_${tripItem.name}"),
+                                    ).testTag("CategorySelector_${tripItem.name}_${tripItem.id}"),
                         )
                     } else {
                         Surface(
@@ -115,7 +120,10 @@ fun ImprovedTripItemRow(
                         ) {
                             Text(
                                 tripItem.category.displayName,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                modifier =
+                                    Modifier
+                                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                                        .testTag("CategoryLabel_${tripItem.name}_${tripItem.id}"),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                             )
@@ -127,19 +135,19 @@ fun ImprovedTripItemRow(
             if (isEditMode) {
                 IconButton(
                     onClick = { viewModel.updateTripItemQuantity(tripId, tripItem.id, tripItem.quantity - 1) },
-                    modifier = Modifier.testTag("DecreaseQuantity_${tripItem.name}"),
+                    modifier = Modifier.testTag("DecreaseQuantity_${tripItem.name}_${tripItem.id}"),
                 ) {
                     Icon(Icons.Default.Remove, "Decrease")
                 }
                 IconButton(
                     onClick = { viewModel.updateTripItemQuantity(tripId, tripItem.id, tripItem.quantity + 1) },
-                    modifier = Modifier.testTag("IncreaseQuantity_${tripItem.name}"),
+                    modifier = Modifier.testTag("IncreaseQuantity_${tripItem.name}_${tripItem.id}"),
                 ) {
                     Icon(Icons.Default.Add, "Increase")
                 }
                 IconButton(
                     onClick = { viewModel.removeTripItem(tripId, tripItem.id) },
-                    modifier = Modifier.testTag("DeleteItem_${tripItem.name}"),
+                    modifier = Modifier.testTag("DeleteItem_${tripItem.name}_${tripItem.id}"),
                 ) {
                     Icon(
                         Icons.Default.Delete,
@@ -197,6 +205,7 @@ fun CategorySelector(
                         onCategorySelected(category)
                         expanded = false
                     },
+                    modifier = Modifier.testTag("CategoryItem_${category.name}"),
                 )
             }
         }
@@ -212,25 +221,28 @@ fun BaseTemplateItemRow(
     onUpdateCategory: (ItemCategory) -> Unit,
     onDelete: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth().testTag("BaseItemRow_${item.name}"), shape = RoundedCornerShape(16.dp)) {
+    Card(
+        modifier = Modifier.fillMaxWidth().testTag("BaseItemRow_${item.name}_${item.id}"),
+        shape = RoundedCornerShape(16.dp),
+    ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(item.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
                     IconButton(
                         onClick = { onUpdateQuantity(item.baseQuantity - 1) },
-                        modifier = Modifier.size(32.dp).testTag("DecreaseBaseQty_${item.name}"),
+                        modifier = Modifier.size(32.dp).testTag("DecreaseBaseQty_${item.name}_${item.id}"),
                     ) {
                         Icon(Icons.Default.Remove, "Decrease")
                     }
                     Text(
                         "${item.baseQuantity}",
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(horizontal = 4.dp).testTag("BaseQtyText_${item.name}"),
+                        modifier = Modifier.padding(horizontal = 4.dp).testTag("BaseQtyText_${item.name}_${item.id}"),
                     )
                     IconButton(
                         onClick = { onUpdateQuantity(item.baseQuantity + 1) },
-                        modifier = Modifier.size(32.dp).testTag("IncreaseBaseQty_${item.name}"),
+                        modifier = Modifier.size(32.dp).testTag("IncreaseBaseQty_${item.name}_${item.id}"),
                     ) {
                         Icon(Icons.Default.Add, "Increase")
                     }
@@ -247,24 +259,28 @@ fun BaseTemplateItemRow(
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         },
-                        modifier = Modifier.testTag("PerDayChip_${item.name}"),
+                        modifier = Modifier.testTag("PerDayChip_${item.name}_${item.id}"),
                     )
 
                     if (item.isPerDay) {
                         IconButton(
                             onClick = { onUpdateQuantityPerDays(item.quantityPerDays - 1) },
-                            modifier = Modifier.size(32.dp).testTag("DecreaseBaseQtyPerDays_${item.name}"),
+                            modifier = Modifier.size(32.dp).testTag("DecreaseBaseQtyPerDays_${item.name}_${item.id}"),
                         ) {
                             Icon(Icons.Default.Remove, "Decrease Days")
                         }
                         Text(
                             "${item.quantityPerDays}",
                             style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(horizontal = 4.dp).testTag("BaseQtyPerDaysText_${item.name}"),
+                            modifier =
+                                Modifier
+                                    .padding(
+                                        horizontal = 4.dp,
+                                    ).testTag("BaseQtyPerDaysText_${item.name}_${item.id}"),
                         )
                         IconButton(
                             onClick = { onUpdateQuantityPerDays(item.quantityPerDays + 1) },
-                            modifier = Modifier.size(32.dp).testTag("IncreaseBaseQtyPerDays_${item.name}"),
+                            modifier = Modifier.size(32.dp).testTag("IncreaseBaseQtyPerDays_${item.name}_${item.id}"),
                         ) {
                             Icon(Icons.Default.Add, "Increase Days")
                         }
@@ -279,12 +295,13 @@ fun BaseTemplateItemRow(
                     CategorySelector(
                         currentCategory = item.category,
                         onCategorySelected = onUpdateCategory,
-                        modifier = Modifier.testTag("BaseCategorySelector_${item.name}"),
+                        modifier = Modifier.testTag("BaseCategorySelector_${item.name}_${item.id}"),
                     )
                 }
             }
-            IconButton(onClick = onDelete, modifier = Modifier.testTag("DeleteBaseItem_${item.name}")) {
-                Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error)
+
+            IconButton(onClick = onDelete, modifier = Modifier.testTag("DeleteBaseItem_${item.name}_${item.id}")) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete Item")
             }
         }
     }

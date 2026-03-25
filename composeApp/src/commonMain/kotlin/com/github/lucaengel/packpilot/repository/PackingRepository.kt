@@ -10,12 +10,13 @@ import kotlinx.serialization.json.Json
 
 class PackingRepository(
     private val dataStoreManager: IDataStoreManager,
-    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default)
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default),
 ) {
-    private val jsonConfig = Json { 
-        ignoreUnknownKeys = true 
-        encodeDefaults = true
-    }
+    private val jsonConfig =
+        Json {
+            ignoreUnknownKeys = true
+            encodeDefaults = true
+        }
 
     private val _items = MutableStateFlow<Map<String, PackingItem>>(emptyMap())
     val items = _items.asStateFlow()
@@ -32,14 +33,13 @@ class PackingRepository(
                 if (json != null) {
                     try {
                         _items.value = jsonConfig.decodeFromString(json)
-                    } catch (e: Exception) {}
+                    } catch (e: Exception) {
+                        println("Error decoding items: ${e.message}")
+                        _items.value = emptyMap()
+                        saveItems()
+                    }
                 } else if (_items.value.isEmpty()) {
-                    val mockItems = listOf(
-                        PackingItem("1", "Underwear", 1, true, category = ItemCategory.CLOTHING),
-                        PackingItem("2", "Socks", 1, true, category = ItemCategory.CLOTHING),
-                        PackingItem("3", "Passport", 1, false, category = ItemCategory.DOCUMENTS)
-                    ).associateBy { it.id }
-                    _items.value = mockItems
+                    _items.value = emptyMap() // mockItems
                     saveItems()
                 }
             }
@@ -50,11 +50,16 @@ class PackingRepository(
                 if (json != null) {
                     try {
                         _lists.value = jsonConfig.decodeFromString(json)
-                    } catch (e: Exception) {}
+                    } catch (e: Exception) {
+                        println("Error decoding lists: ${e.message}")
+                        _lists.value = emptyMap()
+                        saveLists()
+                    }
                 } else if (_lists.value.isEmpty()) {
-                    val mockLists = listOf(
-                        PackingList("g1", "General Essentials", listOf("1", "2", "3"), isGeneral = true)
-                    ).associateBy { it.id }
+                    val mockLists =
+                        listOf(
+                            PackingList("g1", "General Essentials", emptyList(), isGeneral = true),
+                        ).associateBy { it.id }
                     _lists.value = mockLists
                     saveLists()
                 }
@@ -66,23 +71,30 @@ class PackingRepository(
                 if (json != null) {
                     try {
                         _trips.value = jsonConfig.decodeFromString(json)
-                    } catch (e: Exception) {}
+                    } catch (e: Exception) {
+                        println("Error decoding trips: ${e.message}")
+                        _trips.value = emptyMap()
+                        saveTrips()
+                    }
                 }
             }
         }
     }
 
-    private fun saveItems() = scope.launch {
-        dataStoreManager.saveItems(jsonConfig.encodeToString(_items.value))
-    }
+    private fun saveItems() =
+        scope.launch {
+            dataStoreManager.saveItems(jsonConfig.encodeToString(_items.value))
+        }
 
-    private fun saveLists() = scope.launch {
-        dataStoreManager.saveLists(jsonConfig.encodeToString(_lists.value))
-    }
+    private fun saveLists() =
+        scope.launch {
+            dataStoreManager.saveLists(jsonConfig.encodeToString(_lists.value))
+        }
 
-    private fun saveTrips() = scope.launch {
-        dataStoreManager.saveTrips(jsonConfig.encodeToString(_trips.value))
-    }
+    private fun saveTrips() =
+        scope.launch {
+            dataStoreManager.saveTrips(jsonConfig.encodeToString(_trips.value))
+        }
 
     fun addItem(item: PackingItem) {
         _items.update { it + (item.id to item) }
@@ -110,7 +122,11 @@ class PackingRepository(
     }
 
     // New helper for Undo/Redo
-    fun restoreState(items: Map<String, PackingItem>, lists: Map<String, PackingList>, trips: Map<String, Trip>) {
+    fun restoreState(
+        items: Map<String, PackingItem>,
+        lists: Map<String, PackingList>,
+        trips: Map<String, Trip>,
+    ) {
         _items.value = items
         _lists.value = lists
         _trips.value = trips
@@ -120,11 +136,14 @@ class PackingRepository(
     }
 
     fun getGeneralItems(): List<PackingItem> {
-        val generalListIds = _lists.value.values.filter { it.isGeneral }.flatMap { it.itemIds }
+        val generalListIds =
+            _lists.value.values
+                .filter { it.isGeneral }
+                .flatMap { it.itemIds }
         return generalListIds.mapNotNull { _items.value[it] }
     }
 
-    fun getItemsForList(listId: String): List<PackingItem> {
+    fun getItemsForTrip(listId: String): List<PackingItem> {
         val list = _lists.value[listId] ?: return emptyList()
         return list.itemIds.mapNotNull { _items.value[it] }
     }
