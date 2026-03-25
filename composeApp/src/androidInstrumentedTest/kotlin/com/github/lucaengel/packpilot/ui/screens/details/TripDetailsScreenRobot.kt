@@ -96,10 +96,10 @@ class TripDetailsScreenRobot(
         id: String,
         category: ItemCategory,
     ) {
+        // Assert that the item row with the given ID also contains the correct category in its test tag
         composeTestRule
             .onNode(
-                hasText(category.displayName) and hasAnyAncestor(hasTestTagContaining("TripItemRow_$id")),
-                useUnmergedTree = true,
+                hasTestTagContaining("TripItemRow_$id") and hasTestTagContaining("_CAT_${category.name}"),
             ).assertIsDisplayed()
     }
 
