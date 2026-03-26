@@ -19,60 +19,75 @@ class TripCategoryUiTest {
     val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
     @Test
-    fun addingCustomItemWithCategoryDisplaysCorrectly() = runTest {
-        val testScope = TestScope()
-        val repository = PackingRepository(FakeDataStoreManager(), testScope)
-        val viewModel = PackingViewModel(repository)
+    fun addingCustomItemWithCategoryDisplaysCorrectly() =
+        runTest {
+            val testScope = TestScope()
+            val repository = PackingRepository(FakeDataStoreManager(), testScope)
+            val viewModel = PackingViewModel(repository)
 
-        val today = Clock.System.now().toLocalDateTime(TimeZone.UTC).date
-        viewModel.createTrip("Trip", "id", today, today)
-        val tripId = viewModel.trips.value.keys.first()
+            val today =
+                Clock.System
+                    .now()
+                    .toLocalDateTime(TimeZone.UTC)
+                    .date
+            viewModel.createTrip("Trip", "id", today, today)
+            val tripId =
+                viewModel.trips.value.keys
+                    .first()
 
-        composeTestRule.setContent {
-            TripDetailsScreen(
-                viewModel = viewModel,
-                tripId = tripId,
-                onBack = {},
-            )
+            composeTestRule.setContent {
+                TripDetailsScreen(
+                    viewModel = viewModel,
+                    tripId = tripId,
+                    onBack = {},
+                )
+            }
+
+            tripDetailsScreenRobot(composeTestRule) {
+                clickEdit()
+                clickAddCustomItem()
+                enterCustomItemName("Charger")
+                enterCustomItemQty("1")
+                selectCategoryInCustomDialog(ItemCategory.ELECTRONICS)
+                clickConfirmAddCustomItem()
+
+                assertItemExists("Charger")
+                assertCategory("Charger", ItemCategory.ELECTRONICS)
+            }
         }
-
-        tripDetailsScreenRobot(composeTestRule) {
-            clickEdit()
-            clickAddCustomItem()
-            enterCustomItemName("Charger")
-            selectCategoryInCustomDialog(ItemCategory.ELECTRONICS)
-            clickConfirmAddCustomItem()
-
-            assertItemExists("Charger")
-            assertCategory("Charger", ItemCategory.ELECTRONICS)
-        }
-    }
 
     @Test
-    fun changingCategoryInTripDetailsUpdatesDisplay() = runTest {
-        val testScope = TestScope()
-        val repository = PackingRepository(FakeDataStoreManager(), testScope)
-        val viewModel = PackingViewModel(repository)
+    fun changingCategoryInTripDetailsUpdatesDisplay() =
+        runTest {
+            val testScope = TestScope()
+            val repository = PackingRepository(FakeDataStoreManager(), testScope)
+            val viewModel = PackingViewModel(repository)
 
-        val today = Clock.System.now().toLocalDateTime(TimeZone.UTC).date
-        viewModel.createTrip("Trip", "id", today, today)
-        val tripId = viewModel.trips.value.keys.first()
-        viewModel.addCustomItemToTrip(tripId, "Water", 1, ItemCategory.FOOD)
+            val today =
+                Clock.System
+                    .now()
+                    .toLocalDateTime(TimeZone.UTC)
+                    .date
+            viewModel.createTrip("Trip", "id", today, today)
+            val tripId =
+                viewModel.trips.value.keys
+                    .first()
+            viewModel.addCustomItemToTrip(tripId, "Water", 1, ItemCategory.FOOD)
 
-        composeTestRule.setContent {
-            TripDetailsScreen(
-                viewModel = viewModel,
-                tripId = tripId,
-                onBack = {},
-            )
+            composeTestRule.setContent {
+                TripDetailsScreen(
+                    viewModel = viewModel,
+                    tripId = tripId,
+                    onBack = {},
+                )
+            }
+
+            tripDetailsScreenRobot(composeTestRule) {
+                assertCategory("Water", ItemCategory.FOOD)
+
+                clickEdit()
+                changeCategory("Water", ItemCategory.OTHER)
+                assertCategory("Water", ItemCategory.OTHER)
+            }
         }
-
-        tripDetailsScreenRobot(composeTestRule) {
-            assertCategory("Water", ItemCategory.FOOD)
-
-            clickEdit()
-            changeCategory("Water", ItemCategory.OTHER)
-            assertCategory("Water", ItemCategory.OTHER)
-        }
-    }
 }

@@ -55,6 +55,7 @@ class DeduplicationUiTest {
                 clickEdit()
                 clickAddCustomItem()
                 enterCustomItemName("T-Shirt")
+                enterCustomItemQty("1")
                 selectCategoryInCustomDialog(ItemCategory.OTHER)
                 clickConfirmAddCustomItem()
                 clickSave()

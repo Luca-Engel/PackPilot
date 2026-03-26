@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -45,6 +46,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,8 +54,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.github.lucaengel.packpilot.model.ItemCategory
@@ -199,16 +206,17 @@ fun TripDetailsScreen(
                             if (isEditMode) {
                                 IconButton(
                                     onClick = { showDatePicker = true },
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .padding(start = 4.dp)
-                                        .testTag("DatePickerButton")
+                                    modifier =
+                                        Modifier
+                                            .size(32.dp)
+                                            .padding(start = 4.dp)
+                                            .testTag("DatePickerButton"),
                                 ) {
                                     Icon(
                                         Icons.Default.Edit,
                                         "Change Dates",
                                         modifier = Modifier.size(16.dp),
-                                        tint = MaterialTheme.colorScheme.primary
+                                        tint = MaterialTheme.colorScheme.primary,
                                     )
                                 }
                             }
@@ -332,18 +340,39 @@ fun TripDetailsScreen(
 
     if (showAddCustomDialog) {
         var name by remember { mutableStateOf("") }
-        var qty by remember { mutableStateOf("1") }
+        var qty by remember { mutableStateOf("") }
         var category by remember { mutableStateOf(ItemCategory.OTHER) }
+
+        val nameFocusRequester = remember { FocusRequester() }
+        val qtyFocusRequester = remember { FocusRequester() }
+
         AlertDialog(
             onDismissRequest = { showAddCustomDialog = false },
             title = { Text("Add Custom Item") },
             text = {
+                val focusManager = LocalFocusManager.current
+                val keyboardController = LocalSoftwareKeyboardController.current
+
+                LaunchedEffect(Unit) {
+                    nameFocusRequester.requestFocus()
+                }
+
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextField(
                         value = name,
                         onValueChange = { name = it },
                         label = { Text("Item Name") },
-                        modifier = Modifier.testTag("CustomItemNameInput"),
+                        modifier =
+                            Modifier
+                                .testTag("CustomItemNameInput")
+                                .focusRequester(nameFocusRequester),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                        keyboardActions =
+                            KeyboardActions(
+                                onNext = {
+                                    qtyFocusRequester.requestFocus()
+                                },
+                            ),
                     )
                     TextField(
                         value = qty,
@@ -354,8 +383,22 @@ fun TripDetailsScreen(
                             }
                         },
                         label = { Text("Quantity") },
-                        modifier = Modifier.testTag("CustomItemQtyInput"),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier =
+                            Modifier
+                                .testTag("CustomItemQtyInput")
+                                .focusRequester(qtyFocusRequester),
+                        keyboardOptions =
+                            KeyboardOptions(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Done,
+                            ),
+                        keyboardActions =
+                            KeyboardActions(
+                                onDone = {
+                                    keyboardController?.hide()
+                                    focusManager.clearFocus()
+                                },
+                            ),
                     )
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -369,12 +412,17 @@ fun TripDetailsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    if (name.isNotEmpty()) {
+                val isNameValid = name.isNotBlank()
+                val isQtyValid = qty.isNotEmpty() && (qty.toIntOrNull() ?: 0) > 0
+
+                TextButton(
+                    onClick = {
                         viewModel.addCustomItemToTrip(tripId, name, qty.toIntOrNull() ?: 1, category)
                         showAddCustomDialog = false
-                    }
-                }, modifier = Modifier.testTag("ConfirmAddCustomItem")) { Text("Add") }
+                    },
+                    enabled = isNameValid && isQtyValid,
+                    modifier = Modifier.testTag("ConfirmAddCustomItem"),
+                ) { Text("Add") }
             },
             dismissButton = { TextButton(onClick = { showAddCustomDialog = false }) { Text("Cancel") } },
         )
