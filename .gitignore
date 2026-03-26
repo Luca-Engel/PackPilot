@@ -17,3 +17,6 @@ local.properties
 /.kotlin/
 /androidApp/build/
 /composeApp/build/
+/.mcp.json
+/CLAUDE.md
+/.claude/settings.local.json

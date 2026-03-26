@@ -470,6 +470,39 @@ class TripDetailsScreenTest {
         }
 
     @Test
+    fun checkboxHiddenInEditModeAndVisibleOtherwise() =
+        runTest {
+            val testScope = TestScope()
+            val repository = PackingRepository(FakeDataStoreManager(), testScope)
+            val viewModel = PackingViewModel(repository)
+
+            val today =
+                Clock.System
+                    .now()
+                    .toLocalDateTime(TimeZone.UTC)
+                    .date
+            viewModel.createTrip("London", "city", today, today)
+            val tripId =
+                viewModel.trips.value.keys
+                    .first()
+            viewModel.addCustomItemToTrip(tripId, "Umbrella", 1)
+
+            composeTestRule.setContent {
+                TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
+            }
+
+            tripDetailsScreenRobot(composeTestRule) {
+                assertCheckboxVisible("Umbrella")
+
+                clickEdit()
+                assertCheckboxNotVisible("Umbrella")
+
+                clickSave()
+                assertCheckboxVisible("Umbrella")
+            }
+        }
+
+    @Test
     fun deleteTripDialogIsShown() =
         runTest {
             val testScope = TestScope()
