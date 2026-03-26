@@ -378,7 +378,6 @@ fun TripDetailsScreen(
                         value = qty,
                         onValueChange = {
                             if (it.all { c -> c.isDigit() }) {
-                                if (it.isNotEmpty() && it.toLongOrNull() == 0L) return@TextField
                                 qty = it
                             }
                         },
