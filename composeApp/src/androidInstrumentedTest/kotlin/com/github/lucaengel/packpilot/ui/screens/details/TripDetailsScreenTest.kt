@@ -45,9 +45,66 @@ class TripDetailsScreenTest {
                 clickEdit()
                 clickAddCustomItem()
                 enterCustomItemName("Umbrella")
+                enterCustomItemQty("1")
                 clickConfirmAddCustomItem()
 
                 assertItemExists("Umbrella")
+            }
+        }
+
+    @Test
+    fun customItemConfirmButtonDisabledWhenInvalid() =
+        runTest {
+            val testScope = TestScope()
+            val repository = PackingRepository(FakeDataStoreManager(), testScope)
+            val viewModel = PackingViewModel(repository)
+
+            val today =
+                Clock.System
+                    .now()
+                    .toLocalDateTime(TimeZone.UTC)
+                    .date
+            viewModel.createTrip("London", "city", today, today)
+            val tripId =
+                viewModel.trips.value.keys
+                    .first()
+
+            composeTestRule.setContent {
+                TripDetailsScreen(
+                    viewModel = viewModel,
+                    tripId = tripId,
+                    onBack = {},
+                )
+            }
+
+            tripDetailsScreenRobot(composeTestRule) {
+                clickEdit()
+                clickAddCustomItem()
+
+                // Both empty
+                assertConfirmAddCustomItemEnabled(false)
+
+                // Only name
+                enterCustomItemName("Umbrella")
+                assertConfirmAddCustomItemEnabled(false)
+
+                // Qty 0
+                enterCustomItemQty("0")
+                assertConfirmAddCustomItemEnabled(false)
+
+                // Only qty
+                enterCustomItemName("")
+                enterCustomItemQty("1")
+                assertConfirmAddCustomItemEnabled(false)
+
+                // Both valid
+                enterCustomItemName("Umbrella")
+                assertConfirmAddCustomItemEnabled(true)
+
+                // Blank name
+                enterCustomItemName("   ")
+                enterCustomItemQty("1")
+                assertConfirmAddCustomItemEnabled(false)
             }
         }
 
@@ -402,7 +459,7 @@ class TripDetailsScreenTest {
                 clickEdit()
                 clickAddCustomItem()
 
-                // Replaces "1" with "123" -> accepted
+                // "123" -> accepted
                 enterCustomItemQty("123")
                 assertCustomItemQty("123")
 
@@ -458,42 +515,45 @@ class TripDetailsScreenTest {
                                 "1",
                                 "Underwear",
                                 1,
-                                sources = listOf(
-                                    TripItemSourceInfo(
-                                        source = ItemSource.ESSENTIAL,
-                                        name = "Underwear",
-                                        quantity = 1,
-                                        category = ItemCategory.CLOTHING,
-                                    )
-                                ),
+                                sources =
+                                    listOf(
+                                        TripItemSourceInfo(
+                                            source = ItemSource.ESSENTIAL,
+                                            name = "Underwear",
+                                            quantity = 1,
+                                            category = ItemCategory.CLOTHING,
+                                        ),
+                                    ),
                                 category = ItemCategory.CLOTHING,
                             ),
                             TripItem(
                                 "2",
                                 "Toothbrush",
                                 1,
-                                sources = listOf(
-                                    TripItemSourceInfo(
-                                        source = ItemSource.ESSENTIAL,
-                                        name = "Toothbrush",
-                                        quantity = 1,
-                                        category = ItemCategory.TOILETRIES,
-                                    )
-                                ),
+                                sources =
+                                    listOf(
+                                        TripItemSourceInfo(
+                                            source = ItemSource.ESSENTIAL,
+                                            name = "Toothbrush",
+                                            quantity = 1,
+                                            category = ItemCategory.TOILETRIES,
+                                        ),
+                                    ),
                                 category = ItemCategory.TOILETRIES,
                             ),
                             TripItem(
                                 "3",
                                 "Umbrella",
                                 1,
-                                sources = listOf(
-                                    TripItemSourceInfo(
-                                        source = ItemSource.CUSTOM,
-                                        name = "Umbrella",
-                                        quantity = 1,
-                                        category = ItemCategory.OTHER,
-                                    )
-                                ),
+                                sources =
+                                    listOf(
+                                        TripItemSourceInfo(
+                                            source = ItemSource.CUSTOM,
+                                            name = "Umbrella",
+                                            quantity = 1,
+                                            category = ItemCategory.OTHER,
+                                        ),
+                                    ),
                                 category = ItemCategory.OTHER,
                             ),
                         ),

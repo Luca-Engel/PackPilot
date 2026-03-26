@@ -36,7 +36,7 @@ class TripDetailsScreenRobot(
     }
 
     fun enterCustomItemName(name: String) {
-        composeTestRule.onNodeWithTag("CustomItemNameInput").performTextInput(name)
+        composeTestRule.onNodeWithTag("CustomItemNameInput").performTextReplacement(name)
     }
 
     fun enterCustomItemQty(qty: String) {
@@ -54,6 +54,14 @@ class TripDetailsScreenRobot(
 
     fun clickConfirmAddCustomItem() {
         composeTestRule.onNodeWithTag("ConfirmAddCustomItem").performClick()
+    }
+
+    fun assertConfirmAddCustomItemEnabled(enabled: Boolean) {
+        if (enabled) {
+            composeTestRule.onNodeWithTag("ConfirmAddCustomItem").assertIsEnabled()
+        } else {
+            composeTestRule.onNodeWithTag("ConfirmAddCustomItem").assertIsNotEnabled()
+        }
     }
 
     fun toggleItemPacked(id: String) {
