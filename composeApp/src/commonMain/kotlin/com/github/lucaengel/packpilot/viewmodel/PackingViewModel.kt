@@ -42,6 +42,19 @@ class PackingViewModel(
         updateHistoryFlags()
     }
 
+    private var editStartState: AppState? = null
+
+    fun startEditing() {
+        editStartState = AppState(items.value, lists.value, trips.value)
+        clearHistory()
+    }
+
+    fun discardEdits() {
+        editStartState?.let { applyState(it) }
+        editStartState = null
+        clearHistory()
+    }
+
     private fun recordHistory() {
         val currentState = AppState(items.value, lists.value, trips.value)
         undoStack.add(currentState)

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -98,6 +99,7 @@ fun TripDetailsScreen(
 
     var isEditMode by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showDiscardDialog by remember { mutableStateOf(false) }
     var showAddCustomDialog by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
 
@@ -145,13 +147,22 @@ fun TripDetailsScreen(
                         }, modifier = Modifier.testTag("SaveEditButton")) {
                             Icon(Icons.Default.Check, "Save", tint = MaterialTheme.colorScheme.primary)
                         }
+                        IconButton(
+                            onClick = { showDiscardDialog = true },
+                            modifier = Modifier.testTag("StopEditingButton"),
+                        ) {
+                            Icon(Icons.Default.Close, "Stop Editing", tint = MaterialTheme.colorScheme.error)
+                        }
                     } else {
-                        IconButton(onClick = { isEditMode = true }, modifier = Modifier.testTag("EditModeButton")) {
+                        IconButton(onClick = {
+                            viewModel.startEditing()
+                            isEditMode = true
+                        }, modifier = Modifier.testTag("EditModeButton")) {
                             Icon(Icons.Default.Edit, "Edit")
                         }
-                    }
-                    IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.testTag("DeleteTripButton")) {
-                        Icon(Icons.Default.Delete, "Delete Trip", tint = MaterialTheme.colorScheme.error)
+                        IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.testTag("DeleteTripButton")) {
+                            Icon(Icons.Default.Delete, "Delete Trip", tint = MaterialTheme.colorScheme.error)
+                        }
                     }
                 },
             )
@@ -457,6 +468,30 @@ fun TripDetailsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
+            },
+        )
+    }
+
+    if (showDiscardDialog) {
+        AlertDialog(
+            onDismissRequest = { showDiscardDialog = false },
+            title = { Text("Discard Changes?") },
+            text = { Text("Are you sure you want to discard all your changes?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.discardEdits()
+                        isEditMode = false
+                        showDiscardDialog = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.testTag("ConfirmDiscardEdits"),
+                ) {
+                    Text("Discard")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardDialog = false }) { Text("Keep Editing") }
             },
         )
     }

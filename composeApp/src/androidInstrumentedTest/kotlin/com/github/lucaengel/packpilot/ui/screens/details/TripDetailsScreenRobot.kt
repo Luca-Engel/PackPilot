@@ -23,6 +23,30 @@ class TripDetailsScreenRobot(
         composeTestRule.onNodeWithTag("SaveEditButton").performClick()
     }
 
+    fun clickStopEditing() {
+        composeTestRule.onNodeWithTag("StopEditingButton").performClick()
+    }
+
+    fun confirmDiscardEdits() {
+        composeTestRule.onNodeWithTag("ConfirmDiscardEdits").performClick()
+    }
+
+    fun assertDiscardDialogIsDisplayed() {
+        composeTestRule.onNodeWithTag("ConfirmDiscardEdits").assertIsDisplayed()
+    }
+
+    fun assertStopEditingButtonExists() {
+        composeTestRule.onNodeWithTag("StopEditingButton").assertExists()
+    }
+
+    fun assertDeleteTripButtonExists() {
+        composeTestRule.onNodeWithTag("DeleteTripButton").assertExists()
+    }
+
+    fun assertDeleteTripButtonDoesNotExist() {
+        composeTestRule.onNodeWithTag("DeleteTripButton").assertDoesNotExist()
+    }
+
     fun clickDeleteTrip() {
         composeTestRule.onNodeWithTag("DeleteTripButton").performClick()
     }
@@ -82,6 +106,10 @@ class TripDetailsScreenRobot(
 
     fun assertItemExists(name: String) {
         assertItemExistsById(name)
+    }
+
+    fun assertItemDoesNotExist(name: String) {
+        composeTestRule.onNode(hasTestTagContaining("TripItemRow_$name")).assertDoesNotExist()
     }
 
     fun assertItemCountWithName(
