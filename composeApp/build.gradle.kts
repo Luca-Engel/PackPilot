@@ -33,6 +33,7 @@ kotlin {
                 implementation(libs.androidx.datastore.preferences)
                 implementation(libs.kotlinx.datetime)
                 implementation(libs.navigation.compose)
+                implementation("org.jetbrains.compose.ui:ui-tooling-preview:1.10.3")
             }
         }
 
@@ -100,6 +101,10 @@ extensions.configure<com.android.build.api.dsl.LibraryExtension> {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
+}
+
+dependencies {
+    debugImplementation("androidx.compose.ui:ui-tooling")
 }
 
 kover {

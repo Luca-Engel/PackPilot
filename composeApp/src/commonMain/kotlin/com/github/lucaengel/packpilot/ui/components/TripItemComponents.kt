@@ -70,7 +70,7 @@ fun ImprovedTripItemRow(
         enabled = !isEditMode,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp).fillMaxWidth(),
+            modifier = Modifier.padding(horizontal = 8.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (!isEditMode) {
@@ -87,7 +87,12 @@ fun ImprovedTripItemRow(
                 modifier =
                     Modifier
                         .weight(1f)
-                        .padding(start = if (isEditMode) 12.dp else 0.dp),
+                        .padding(
+                            start = if (isEditMode) 12.dp else 0.dp,
+                            top = 12.dp,
+                            // since the clickable buttons have a buffer, remove it when they are shown
+                            bottom = if (isEditMode) 0.dp else 12.dp,
+                        ),
                 verticalArrangement = Arrangement.Center,
             ) {
                 Text(
