@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -14,7 +15,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.github.lucaengel.packpilot.viewmodel.PackingViewModel
@@ -28,7 +32,9 @@ fun CreateTripScreen(viewModel: PackingViewModel, onTripCreated: () -> Unit, onB
     var searchQuery by remember { mutableStateOf("") }
     var showDatePicker by remember { mutableStateOf(false) }
     var maxDaysBetweenWashes by remember { mutableStateOf("") }
-    
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     val dateRangePickerState = rememberDateRangePickerState()
     val lists by viewModel.lists.collectAsState()
     val filteredLists = lists.values.filter { !it.isGeneral && it.title.contains(searchQuery, ignoreCase = true) }
@@ -100,7 +106,16 @@ fun CreateTripScreen(viewModel: PackingViewModel, onTripCreated: () -> Unit, onB
                 placeholder = { Text("e.g. 7") },
                 modifier = Modifier.fillMaxWidth().testTag("MaxDaysBetweenWashesInput"),
                 shape = RoundedCornerShape(12.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        keyboardController?.hide()
+                        focusManager.clearFocus()
+                    },
+                ),
                 leadingIcon = { Icon(Icons.Default.LocalLaundryService, null) }
             )
 

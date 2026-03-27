@@ -227,6 +227,8 @@ fun TripDetailsScreen(
                         var maxDaysStr by remember(trip.maxDaysBetweenWashes) {
                             mutableStateOf(trip.maxDaysBetweenWashes?.toString() ?: "")
                         }
+                        val maxDaysFocusManager = LocalFocusManager.current
+                        val maxDaysKeyboardController = LocalSoftwareKeyboardController.current
                         OutlinedTextField(
                             value = maxDaysStr,
                             onValueChange = {
@@ -244,7 +246,16 @@ fun TripDetailsScreen(
                             },
                             label = { Text("Max days between washes") },
                             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).testTag("EditMaxDaysInput"),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Done,
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    maxDaysKeyboardController?.hide()
+                                    maxDaysFocusManager.clearFocus()
+                                },
+                            ),
                             leadingIcon = { Icon(Icons.Default.LocalLaundryService, null) },
                             shape = RoundedCornerShape(12.dp),
                         )
