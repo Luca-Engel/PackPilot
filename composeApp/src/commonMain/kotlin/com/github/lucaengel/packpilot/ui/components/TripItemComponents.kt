@@ -1,5 +1,6 @@
 package com.github.lucaengel.packpilot.ui.components
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -66,18 +67,34 @@ fun ImprovedTripItemRow(
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
             },
         onClick = { viewModel.togglePacked(tripId, tripItem.id) },
+        enabled = !isEditMode,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp).fillMaxWidth(),
+            modifier = Modifier.padding(horizontal = 8.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Checkbox(
-                checked = isPacked,
-                onCheckedChange = { viewModel.togglePacked(tripId, tripItem.id) },
-                modifier = Modifier.testTag("PackedCheckbox_${tripItem.name}_${tripItem.id}"),
-            )
+            if (!isEditMode) {
+                Checkbox(
+                    checked = isPacked,
+                    onCheckedChange = { viewModel.togglePacked(tripId, tripItem.id) },
+                    modifier =
+                        Modifier
+                            .testTag("PackedCheckbox_${tripItem.name}_${tripItem.id}"),
+                )
+            }
 
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .padding(
+                            start = if (isEditMode) 12.dp else 0.dp,
+                            top = 12.dp,
+                            // since the clickable buttons have a buffer, remove it when they are shown
+                            bottom = if (isEditMode) 0.dp else 12.dp,
+                        ),
+                verticalArrangement = Arrangement.Center,
+            ) {
                 Text(
                     tripItem.name,
                     style = MaterialTheme.typography.titleMedium,
@@ -96,7 +113,6 @@ fun ImprovedTripItemRow(
                                 Modifier
                                     .padding(
                                         start = 8.dp,
-                                        top = 4.dp,
                                     ).testTag("CategorySelector_${tripItem.name}_${tripItem.id}"),
                         )
                     }
@@ -142,7 +158,7 @@ fun ItemQuantityBadge(
     Surface(
         color = MaterialTheme.colorScheme.secondaryContainer,
         shape = RoundedCornerShape(6.dp),
-        modifier = modifier.padding(top = 4.dp),
+        modifier = modifier,
     ) {
         Text(
             "Qty: ${tripItem.quantity}",
