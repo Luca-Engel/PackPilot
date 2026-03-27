@@ -113,7 +113,6 @@ fun ImprovedTripItemRow(
                                 Modifier
                                     .padding(
                                         start = 8.dp,
-//                                        top = 4.dp,
                                     ).testTag("CategorySelector_${tripItem.name}_${tripItem.id}"),
                         )
                     }
@@ -160,7 +159,6 @@ fun ItemQuantityBadge(
         color = MaterialTheme.colorScheme.secondaryContainer,
         shape = RoundedCornerShape(6.dp),
         modifier = modifier,
-//            .padding(top = 4.dp),
     ) {
         Text(
             "Qty: ${tripItem.quantity}",

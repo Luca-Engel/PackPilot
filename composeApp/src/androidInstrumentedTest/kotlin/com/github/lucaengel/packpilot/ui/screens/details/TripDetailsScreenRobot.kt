@@ -69,7 +69,7 @@ class TripDetailsScreenRobot(
     }
 
     fun assertCheckboxVisible(id: String) {
-        composeTestRule.onNode(hasTestTagContaining("PackedCheckbox_$id"), useUnmergedTree = true).assertExists()
+        composeTestRule.onNode(hasTestTagContaining("PackedCheckbox_$id"), useUnmergedTree = true).assertIsDisplayed()
     }
 
     fun assertCheckboxNotVisible(id: String) {
