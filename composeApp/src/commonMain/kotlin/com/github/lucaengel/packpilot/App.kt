@@ -5,18 +5,33 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.github.lucaengel.packpilot.ui.navigation.*
+import com.github.lucaengel.packpilot.ui.navigation.CreateTripRoute
+import com.github.lucaengel.packpilot.ui.navigation.EssentialsRoute
+import com.github.lucaengel.packpilot.ui.navigation.HomeRoute
+import com.github.lucaengel.packpilot.ui.navigation.TripDetailsRoute
+import com.github.lucaengel.packpilot.ui.navigation.TripTypesRoute
 import com.github.lucaengel.packpilot.ui.screens.create.CreateTripScreen
 import com.github.lucaengel.packpilot.ui.screens.details.TripDetailsScreen
 import com.github.lucaengel.packpilot.ui.screens.essentials.GeneralItemsScreen
@@ -30,6 +45,7 @@ fun App(viewModel: PackingViewModel) {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val currentDestination by navController.currentBackStackEntryAsState()
 
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -45,7 +61,7 @@ fun App(viewModel: PackingViewModel) {
                         HorizontalDivider()
                         NavigationDrawerItem(
                             label = { Text("Packing Lists") },
-                            selected = false,
+                            selected = currentDestination?.destination?.hasRoute(HomeRoute::class) == true,
                             icon = { Icon(Icons.Default.Home, contentDescription = null) },
                             onClick = {
                                 scope.launch { drawerState.close() }
@@ -56,7 +72,7 @@ fun App(viewModel: PackingViewModel) {
                         )
                         NavigationDrawerItem(
                             label = { Text("Essential Items") },
-                            selected = false,
+                            selected = currentDestination?.destination?.hasRoute(EssentialsRoute::class) == true,
                             icon = { Icon(Icons.Default.Settings, contentDescription = null) },
                             onClick = {
                                 scope.launch { drawerState.close() }
@@ -65,7 +81,7 @@ fun App(viewModel: PackingViewModel) {
                         )
                         NavigationDrawerItem(
                             label = { Text("Trip Types") },
-                            selected = false,
+                            selected = currentDestination?.destination?.hasRoute(TripTypesRoute::class) == true,
                             icon = { Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = null) },
                             onClick = {
                                 scope.launch { drawerState.close() }
