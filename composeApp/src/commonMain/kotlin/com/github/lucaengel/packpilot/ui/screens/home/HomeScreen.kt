@@ -6,10 +6,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -28,8 +27,7 @@ fun HomeScreen(
     viewModel: PackingViewModel,
     onCreateTrip: () -> Unit,
     onSelectTrip: (String) -> Unit,
-    onOpenGeneral: () -> Unit,
-    onManageTypes: () -> Unit
+    onOpenDrawer: () -> Unit,
 ) {
     val plannedTrips by viewModel.getPlannedTrips().collectAsState(emptyList())
     val pastTrips by viewModel.getPastTrips().collectAsState(emptyList())
@@ -38,14 +36,11 @@ fun HomeScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("PackPilot", fontWeight = FontWeight.ExtraBold) },
-                actions = {
-                    IconButton(onClick = onManageTypes) {
-                        Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = "Trip Types")
+                navigationIcon = {
+                    IconButton(onClick = onOpenDrawer) {
+                        Icon(Icons.Default.Menu, contentDescription = "Open navigation drawer")
                     }
-                    IconButton(onClick = onOpenGeneral) {
-                        Icon(Icons.Default.Settings, contentDescription = "Essentials")
-                    }
-                }
+                },
             )
         },
         floatingActionButton = {

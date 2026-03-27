@@ -17,12 +17,20 @@ class HomeScreenRobot(private val composeTestRule: ComposeContentTestRule) {
         composeTestRule.onNodeWithContentDescription("New Trip").performClick()
     }
 
-    fun clickTripTypes() {
-        composeTestRule.onNodeWithContentDescription("Trip Types").performClick()
+    fun openDrawer() {
+        composeTestRule.onNodeWithContentDescription("Open navigation drawer").performClick()
     }
 
-    fun clickEssentials() {
-        composeTestRule.onNodeWithContentDescription("Essentials").performClick()
+    fun clickDrawerPackingLists() {
+        composeTestRule.onNodeWithText("Packing Lists").performClick()
+    }
+
+    fun clickDrawerEssentials() {
+        composeTestRule.onNodeWithText("Essential Items").performClick()
+    }
+
+    fun clickDrawerTripTypes() {
+        composeTestRule.onNodeWithText("Trip Types").performClick()
     }
 
     fun clickTrip(title: String) {
@@ -35,6 +43,16 @@ class HomeScreenRobot(private val composeTestRule: ComposeContentTestRule) {
 
     fun assertNoTripsMessageDisplayed() {
         composeTestRule.onNodeWithText("No trips planned yet. Tap + to start!").assertIsDisplayed()
+    }
+
+    fun assertDrawerMenuButtonDisplayed() {
+        composeTestRule.onNodeWithContentDescription("Open navigation drawer").assertIsDisplayed()
+    }
+
+    fun assertDrawerIsDisplayed() {
+        composeTestRule.onNodeWithText("Packing Lists").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Essential Items").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Trip Types").assertIsDisplayed()
     }
 }
 

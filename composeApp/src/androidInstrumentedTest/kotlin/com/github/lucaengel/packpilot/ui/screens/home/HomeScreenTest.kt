@@ -29,8 +29,7 @@ class HomeScreenTest {
                 viewModel = viewModel,
                 onCreateTrip = {},
                 onSelectTrip = {},
-                onOpenGeneral = {},
-                onManageTypes = {}
+                onOpenDrawer = {},
             )
         }
 
@@ -44,7 +43,7 @@ class HomeScreenTest {
         val testScope = TestScope()
         val repository = PackingRepository(FakeDataStoreManager(), testScope)
         val viewModel = PackingViewModel(repository)
-        
+
         val today = Clock.System.now().toLocalDateTime(TimeZone.UTC).date
         viewModel.createTrip("Ski Trip", "skiing", today, today)
 
@@ -53,13 +52,55 @@ class HomeScreenTest {
                 viewModel = viewModel,
                 onCreateTrip = {},
                 onSelectTrip = {},
-                onOpenGeneral = {},
-                onManageTypes = {}
+                onOpenDrawer = {},
             )
         }
 
         homeScreenRobot(composeTestRule) {
             assertTripExists("Ski Trip")
         }
+    }
+
+    @Test
+    fun drawerMenuButtonIsDisplayed() {
+        val testScope = TestScope()
+        val repository = PackingRepository(FakeDataStoreManager(), testScope)
+        val viewModel = PackingViewModel(repository)
+
+        composeTestRule.setContent {
+            HomeScreen(
+                viewModel = viewModel,
+                onCreateTrip = {},
+                onSelectTrip = {},
+                onOpenDrawer = {},
+            )
+        }
+
+        homeScreenRobot(composeTestRule) {
+            assertDrawerMenuButtonDisplayed()
+        }
+    }
+
+    @Test
+    fun clickingDrawerMenuButtonTriggersOpenDrawerCallback() {
+        val testScope = TestScope()
+        val repository = PackingRepository(FakeDataStoreManager(), testScope)
+        val viewModel = PackingViewModel(repository)
+        var drawerOpened = false
+
+        composeTestRule.setContent {
+            HomeScreen(
+                viewModel = viewModel,
+                onCreateTrip = {},
+                onSelectTrip = {},
+                onOpenDrawer = { drawerOpened = true },
+            )
+        }
+
+        homeScreenRobot(composeTestRule) {
+            openDrawer()
+        }
+
+        assert(drawerOpened) { "Expected onOpenDrawer to be called when menu button is clicked" }
     }
 }
