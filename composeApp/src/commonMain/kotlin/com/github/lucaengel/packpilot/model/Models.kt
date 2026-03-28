@@ -6,6 +6,31 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import kotlinx.serialization.Serializable
 
+@Serializable
+enum class FeedbackType {
+    BROUGHT_AND_NEEDED,
+    BROUGHT_BUT_DIDNT_NEED,
+    NEEDED_BUT_DIDNT_BRING,
+    QUANTITY_WAS_OFF,
+    ;
+
+    val displayName: String
+        get() = when (this) {
+            BROUGHT_AND_NEEDED -> "Brought and needed"
+            BROUGHT_BUT_DIDNT_NEED -> "Brought but didn't need"
+            NEEDED_BUT_DIDNT_BRING -> "Needed but didn't bring"
+            QUANTITY_WAS_OFF -> "Quantity was off"
+        }
+}
+
+@Serializable
+data class TripItemFeedback(
+    val itemId: String,
+    val feedbackType: FeedbackType,
+    val suggestedQuantity: Int? = null,
+    val timestamp: Long = 0L,
+)
+
 enum class ItemCategory {
     CLOTHING,
     TOILETRIES,
@@ -76,6 +101,7 @@ data class Trip(
     val activityTitle: String = "",
     val maxDaysBetweenWashes: Int? = null,
     val isReviewed: Boolean = false,
+    val itemFeedback: List<TripItemFeedback> = emptyList(),
 ) {
     val days: Int get() = (endDate.toEpochDays() - startDate.toEpochDays() + 1).coerceAtLeast(1)
 }

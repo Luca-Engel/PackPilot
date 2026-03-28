@@ -2,6 +2,8 @@ package com.github.lucaengel.packpilot.ui.screens.review
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,14 +20,12 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,10 +51,14 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.github.lucaengel.packpilot.model.FeedbackType
 import com.github.lucaengel.packpilot.model.ItemCategory
 import com.github.lucaengel.packpilot.model.TripItem
+import com.github.lucaengel.packpilot.model.TripItemFeedback
 import com.github.lucaengel.packpilot.viewmodel.PackingViewModel
+import kotlinx.datetime.Clock
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,14 +70,25 @@ fun PostTripReviewScreen(
     val trips by viewModel.trips.collectAsState()
     val trip = trips[tripId] ?: return
 
+    // Adjusted quantities for template saving; updated when QUANTITY_WAS_OFF is confirmed
     var adjustedQuantities by remember {
         mutableStateOf(trip.items.associate { it.id to it.quantity })
     }
-    var reviewedItemIds by remember { mutableStateOf(emptySet<String>()) }
+
+    // Track persisted feedback per item; initialised from the trip model
+    var itemFeedbacks by remember {
+        mutableStateOf(trip.itemFeedback.associateBy { it.itemId })
+    }
+
+    // An item is considered reviewed as soon as any feedback is selected
+    val reviewedItemIds: Set<String> = itemFeedbacks.keys
 
     val totalItems = trip.items.size
     val reviewedCount = reviewedItemIds.size
     val progress = if (totalItems == 0) 1f else reviewedCount.toFloat() / totalItems
+
+    // Item ID awaiting quantity input for QUANTITY_WAS_OFF feedback
+    var quantityDialogItemId by remember { mutableStateOf<String?>(null) }
 
     var showSaveDialog by remember { mutableStateOf(false) }
 
@@ -205,24 +220,94 @@ fun PostTripReviewScreen(
                 items(categoryItems) { tripItem ->
                     ReviewItemRow(
                         tripItem = tripItem,
-                        adjustedQuantity = adjustedQuantities[tripItem.id] ?: tripItem.quantity,
                         isReviewed = tripItem.id in reviewedItemIds,
-                        onQuantityChange = { newQty ->
-                            if (newQty >= 1) {
-                                adjustedQuantities = adjustedQuantities + (tripItem.id to newQty)
+                        currentFeedback = itemFeedbacks[tripItem.id]?.feedbackType,
+                        onFeedbackSelected = { feedbackType ->
+                            if (feedbackType == FeedbackType.QUANTITY_WAS_OFF) {
+                                quantityDialogItemId = tripItem.id
+                            } else {
+                                val feedback = TripItemFeedback(
+                                    itemId = tripItem.id,
+                                    feedbackType = feedbackType,
+                                    timestamp = Clock.System.now().toEpochMilliseconds(),
+                                )
+                                itemFeedbacks = itemFeedbacks + (tripItem.id to feedback)
+                                viewModel.saveTripItemFeedback(tripId, feedback)
                             }
-                        },
-                        onToggleReviewed = {
-                            reviewedItemIds =
-                                if (tripItem.id in reviewedItemIds) {
-                                    reviewedItemIds - tripItem.id
-                                } else {
-                                    reviewedItemIds + tripItem.id
-                                }
                         },
                     )
                 }
             }
+        }
+    }
+
+    // Quantity dialog for QUANTITY_WAS_OFF feedback
+    quantityDialogItemId?.let { itemId ->
+        val tripItem = trip.items.find { it.id == itemId }
+        if (tripItem != null) {
+            var quantityInput by remember(itemId) { mutableStateOf("") }
+            val focusRequester = remember { FocusRequester() }
+
+            AlertDialog(
+                onDismissRequest = { quantityDialogItemId = null },
+                title = { Text("Ideal quantity for ${tripItem.name}") },
+                text = {
+                    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+                    TextField(
+                        value = quantityInput,
+                        onValueChange = { quantityInput = it.filter { c -> c.isDigit() } },
+                        label = { Text("Ideal quantity") },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Done,
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                val qty = quantityInput.toIntOrNull()
+                                if (qty != null && qty >= 1) {
+                                    val feedback = TripItemFeedback(
+                                        itemId = itemId,
+                                        feedbackType = FeedbackType.QUANTITY_WAS_OFF,
+                                        suggestedQuantity = qty,
+                                        timestamp = Clock.System.now().toEpochMilliseconds(),
+                                    )
+                                    itemFeedbacks = itemFeedbacks + (itemId to feedback)
+                                    adjustedQuantities = adjustedQuantities + (itemId to qty)
+                                    viewModel.saveTripItemFeedback(tripId, feedback)
+                                    quantityDialogItemId = null
+                                }
+                            },
+                        ),
+                        modifier = Modifier
+                            .testTag("FeedbackQuantityInput_$itemId")
+                            .focusRequester(focusRequester),
+                    )
+                },
+                confirmButton = {
+                    val qty = quantityInput.toIntOrNull()
+                    TextButton(
+                        onClick = {
+                            if (qty != null && qty >= 1) {
+                                val feedback = TripItemFeedback(
+                                    itemId = itemId,
+                                    feedbackType = FeedbackType.QUANTITY_WAS_OFF,
+                                    suggestedQuantity = qty,
+                                    timestamp = Clock.System.now().toEpochMilliseconds(),
+                                )
+                                itemFeedbacks = itemFeedbacks + (itemId to feedback)
+                                adjustedQuantities = adjustedQuantities + (itemId to qty)
+                                viewModel.saveTripItemFeedback(tripId, feedback)
+                                quantityDialogItemId = null
+                            }
+                        },
+                        enabled = qty != null && qty >= 1,
+                        modifier = Modifier.testTag("ConfirmFeedbackQuantity_$itemId"),
+                    ) { Text("Confirm") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { quantityDialogItemId = null }) { Text("Cancel") }
+                },
+            )
         }
     }
 
@@ -270,13 +355,13 @@ fun PostTripReviewScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ReviewItemRow(
     tripItem: TripItem,
-    adjustedQuantity: Int,
     isReviewed: Boolean,
-    onQuantityChange: (Int) -> Unit,
-    onToggleReviewed: () -> Unit,
+    currentFeedback: FeedbackType?,
+    onFeedbackSelected: (FeedbackType) -> Unit,
 ) {
     Surface(
         modifier = Modifier
@@ -289,54 +374,40 @@ private fun ReviewItemRow(
         },
         shape = RoundedCornerShape(16.dp),
     ) {
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Checkbox(
-                checked = isReviewed,
-                onCheckedChange = { onToggleReviewed() },
-                modifier = Modifier.testTag("ReviewedCheckbox_${tripItem.name}_${tripItem.id}"),
-            )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 4.dp),
-            ) {
-                Text(
-                    tripItem.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = if (isReviewed) FontWeight.Normal else FontWeight.Bold,
-                    color = if (isReviewed) {
-                        MaterialTheme.colorScheme.outline
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                )
-                Text(
-                    tripItem.category.displayName,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-            IconButton(
-                onClick = { onQuantityChange(adjustedQuantity - 1) },
-                modifier = Modifier.testTag("DecreaseReviewQty_${tripItem.name}_${tripItem.id}"),
-            ) {
-                Icon(Icons.Default.Remove, "Decrease")
-            }
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
             Text(
-                "Qty: $adjustedQuantity",
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.testTag("ReviewItemQty_${tripItem.name}_${tripItem.id}"),
+                tripItem.name,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = if (isReviewed) FontWeight.Normal else FontWeight.Bold,
+                color = if (isReviewed) {
+                    MaterialTheme.colorScheme.outline
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
             )
-            IconButton(
-                onClick = { onQuantityChange(adjustedQuantity + 1) },
-                modifier = Modifier.testTag("IncreaseReviewQty_${tripItem.name}_${tripItem.id}"),
+            Text(
+                tripItem.category.displayName,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.height(6.dp))
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Icon(Icons.Default.Add, "Increase")
+                FeedbackType.entries.forEach { feedbackType ->
+                    FilterChip(
+                        selected = currentFeedback == feedbackType,
+                        onClick = { onFeedbackSelected(feedbackType) },
+                        label = {
+                            Text(
+                                feedbackType.displayName,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        },
+                        modifier = Modifier.testTag("FeedbackButton_${feedbackType.name}_${tripItem.id}"),
+                    )
+                }
             }
         }
     }

@@ -9,7 +9,6 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
 
@@ -39,22 +38,6 @@ class PostTripReviewScreenRobot(
 
     fun assertItemDisplayed(name: String) {
         composeTestRule.onNode(hasTestTagContaining("ReviewItemRow_$name")).assertIsDisplayed()
-    }
-
-    fun assertItemQuantity(name: String, qty: Int) {
-        composeTestRule.onNode(hasTestTagContaining("ReviewItemQty_$name")).assertTextEquals("Qty: $qty")
-    }
-
-    fun clickIncreaseQty(name: String) {
-        composeTestRule.onNode(hasTestTagContaining("IncreaseReviewQty_$name")).performClick()
-    }
-
-    fun clickDecreaseQty(name: String) {
-        composeTestRule.onNode(hasTestTagContaining("DecreaseReviewQty_$name")).performClick()
-    }
-
-    fun clickReviewedCheckbox(name: String) {
-        composeTestRule.onNode(hasTestTagContaining("ReviewedCheckbox_$name")).performClick()
     }
 
     fun assertCategoryHeaderDisplayed(categoryName: String) {
@@ -91,6 +74,34 @@ class PostTripReviewScreenRobot(
 
     fun assertTripTitleInSummary(title: String) {
         composeTestRule.onNodeWithTag("ReviewTripSummaryTitle").assertIsDisplayed()
+    }
+
+    fun clickFeedbackButton(feedbackTypeName: String, itemId: String) {
+        composeTestRule.onNodeWithTag("FeedbackButton_${feedbackTypeName}_$itemId").performClick()
+    }
+
+    fun assertFeedbackButtonDisplayed(feedbackTypeName: String, itemId: String) {
+        composeTestRule.onNodeWithTag("FeedbackButton_${feedbackTypeName}_$itemId").assertIsDisplayed()
+    }
+
+    fun assertFeedbackQuantityInputDisplayed(itemId: String) {
+        composeTestRule.onNodeWithTag("FeedbackQuantityInput_$itemId").assertIsDisplayed()
+    }
+
+    fun enterFeedbackQuantity(itemId: String, qty: String) {
+        composeTestRule.onNodeWithTag("FeedbackQuantityInput_$itemId").performTextReplacement(qty)
+    }
+
+    fun clickConfirmFeedbackQuantity(itemId: String) {
+        composeTestRule.onNodeWithTag("ConfirmFeedbackQuantity_$itemId").performClick()
+    }
+
+    fun assertConfirmFeedbackQuantityEnabled(itemId: String, enabled: Boolean) {
+        if (enabled) {
+            composeTestRule.onNodeWithTag("ConfirmFeedbackQuantity_$itemId").assertIsEnabled()
+        } else {
+            composeTestRule.onNodeWithTag("ConfirmFeedbackQuantity_$itemId").assertIsNotEnabled()
+        }
     }
 }
 

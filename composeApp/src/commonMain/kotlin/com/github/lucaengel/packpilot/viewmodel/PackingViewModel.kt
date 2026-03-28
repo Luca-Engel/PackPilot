@@ -612,6 +612,12 @@ class PackingViewModel(
         repository.addList(generalList.copy(itemIds = generalList.itemIds - itemId))
     }
 
+    fun saveTripItemFeedback(tripId: String, feedback: TripItemFeedback) {
+        val trip = trips.value[tripId] ?: return
+        val updatedFeedback = trip.itemFeedback.filter { it.itemId != feedback.itemId } + feedback
+        repository.updateTrip(trip.copy(itemFeedback = updatedFeedback))
+    }
+
     fun markTripReviewed(tripId: String) {
         val trip = trips.value[tripId] ?: return
         repository.updateTrip(trip.copy(isReviewed = true))
