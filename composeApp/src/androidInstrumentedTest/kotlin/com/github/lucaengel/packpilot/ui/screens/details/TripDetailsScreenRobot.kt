@@ -189,6 +189,38 @@ class TripDetailsScreenRobot(
     fun enterMaxDaysBetweenWashes(days: String) {
         composeTestRule.onNodeWithTag("EditMaxDaysInput").performTextReplacement(days)
     }
+
+    fun clickSaveAsTemplate() {
+        composeTestRule.onNodeWithTag("SaveAsTemplateButton").performClick()
+    }
+
+    fun assertSaveAsTemplateButtonExists() {
+        composeTestRule.onNodeWithTag("SaveAsTemplateButton").assertExists()
+    }
+
+    fun assertSaveAsTemplateButtonDoesNotExist() {
+        composeTestRule.onNodeWithTag("SaveAsTemplateButton").assertDoesNotExist()
+    }
+
+    fun enterTemplateName(name: String) {
+        composeTestRule.onNodeWithTag("TemplateNameInput").performTextReplacement(name)
+    }
+
+    fun clickConfirmSaveAsTemplate() {
+        composeTestRule.onNodeWithTag("ConfirmSaveAsTemplate").performClick()
+    }
+
+    fun assertSaveAsTemplateDialogDisplayed() {
+        composeTestRule.onNodeWithTag("ConfirmSaveAsTemplate").assertIsDisplayed()
+    }
+
+    fun assertConfirmSaveAsTemplateEnabled(enabled: Boolean) {
+        if (enabled) {
+            composeTestRule.onNodeWithTag("ConfirmSaveAsTemplate").assertIsEnabled()
+        } else {
+            composeTestRule.onNodeWithTag("ConfirmSaveAsTemplate").assertIsNotEnabled()
+        }
+    }
 }
 
 fun tripDetailsScreenRobot(
