@@ -612,6 +612,19 @@ class PackingViewModel(
         repository.addList(generalList.copy(itemIds = generalList.itemIds - itemId))
     }
 
+    fun markTripReviewed(tripId: String) {
+        val trip = trips.value[tripId] ?: return
+        repository.updateTrip(trip.copy(isReviewed = true))
+    }
+
+    fun getTripsAwaitingReview(): Flow<List<Trip>> =
+        trips.map { tripMap ->
+            val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+            tripMap.values
+                .filter { it.endDate < today && !it.isReviewed }
+                .sortedByDescending { it.startDate }
+        }
+
     fun saveReviewedTripAsTemplate(
         tripId: String,
         templateName: String,
@@ -643,6 +656,7 @@ class PackingViewModel(
                 items = templateItems,
             )
         repository.addTemplate(template)
+        markTripReviewed(tripId)
     }
 
     fun saveCurrentTripAsTemplate(tripId: String, templateName: String) {

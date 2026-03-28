@@ -100,6 +100,7 @@ fun App(viewModel: PackingViewModel) {
                             onCreateTrip = { navController.navigate(CreateTripRoute) },
                             onSelectTrip = { id -> navController.navigate(TripDetailsRoute(id)) },
                             onOpenDrawer = { scope.launch { drawerState.open() } },
+                            onReviewTrip = { id -> navController.navigate(PostTripReviewRoute(id)) },
                         )
                     }
                     composable<CreateTripRoute> {
