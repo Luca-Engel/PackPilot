@@ -27,6 +27,9 @@ class PackingRepository(
     private val _trips = MutableStateFlow<Map<String, Trip>>(emptyMap())
     val trips = _trips.asStateFlow()
 
+    private val _templates = MutableStateFlow<Map<String, TripTemplate>>(emptyMap())
+    val templates = _templates.asStateFlow()
+
     init {
         scope.launch {
             dataStoreManager.itemsJson.collect { json ->
@@ -79,6 +82,20 @@ class PackingRepository(
                 }
             }
         }
+
+        scope.launch {
+            dataStoreManager.templatesJson.collect { json ->
+                if (json != null) {
+                    try {
+                        _templates.value = jsonConfig.decodeFromString(json)
+                    } catch (e: Exception) {
+                        println("Error decoding templates: ${e.message}")
+                        _templates.value = emptyMap()
+                        saveTemplates()
+                    }
+                }
+            }
+        }
     }
 
     private fun saveItems() =
@@ -94,6 +111,11 @@ class PackingRepository(
     private fun saveTrips() =
         scope.launch {
             dataStoreManager.saveTrips(jsonConfig.encodeToString(_trips.value))
+        }
+
+    private fun saveTemplates() =
+        scope.launch {
+            dataStoreManager.saveTemplates(jsonConfig.encodeToString(_templates.value))
         }
 
     fun addItem(item: PackingItem) {
@@ -133,6 +155,16 @@ class PackingRepository(
         saveItems()
         saveLists()
         saveTrips()
+    }
+
+    fun addTemplate(template: TripTemplate) {
+        _templates.update { it + (template.id to template) }
+        saveTemplates()
+    }
+
+    fun deleteTemplate(templateId: String) {
+        _templates.update { it - templateId }
+        saveTemplates()
     }
 
     fun getGeneralItems(): List<PackingItem> {
