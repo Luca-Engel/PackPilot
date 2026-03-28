@@ -612,26 +612,41 @@ class PackingViewModel(
         repository.addList(generalList.copy(itemIds = generalList.itemIds - itemId))
     }
 
-    fun saveCurrentTripAsTemplate(tripId: String, templateName: String) {
+    fun saveReviewedTripAsTemplate(
+        tripId: String,
+        templateName: String,
+        adjustedQuantities: Map<String, Int>,
+    ) {
         val trip = trips.value[tripId] ?: return
-        val templateItems = trip.items.map { tripItem ->
-            val distinctSources = tripItem.sources.map { it.source }.distinct()
-            val effectiveSource =
-                if (distinctSources.size > 1) ItemSource.MERGED else distinctSources.firstOrNull() ?: ItemSource.CUSTOM
-            TemplateItem(
-                name = tripItem.name,
-                quantity = tripItem.quantity,
-                category = tripItem.category,
-                source = effectiveSource,
+        val templateItems =
+            trip.items.map { tripItem ->
+                val qty = adjustedQuantities[tripItem.id] ?: tripItem.quantity
+                val distinctSources = tripItem.sources.map { it.source }.distinct()
+                val effectiveSource =
+                    if (distinctSources.size > 1) {
+                        ItemSource.MERGED
+                    } else {
+                        distinctSources.firstOrNull() ?: ItemSource.CUSTOM
+                    }
+                TemplateItem(
+                    name = tripItem.name,
+                    quantity = qty,
+                    category = tripItem.category,
+                    source = effectiveSource,
+                )
+            }
+        val template =
+            TripTemplate(
+                id = "template_${Clock.System.now().toEpochMilliseconds()}_${Random.nextInt(1000)}",
+                name = templateName,
+                createdAt = Clock.System.now().toEpochMilliseconds(),
+                items = templateItems,
             )
-        }
-        val template = TripTemplate(
-            id = "template_${Clock.System.now().toEpochMilliseconds()}_${Random.nextInt(1000)}",
-            name = templateName,
-            createdAt = Clock.System.now().toEpochMilliseconds(),
-            items = templateItems,
-        )
         repository.addTemplate(template)
+    }
+
+    fun saveCurrentTripAsTemplate(tripId: String, templateName: String) {
+        saveReviewedTripAsTemplate(tripId, templateName, emptyMap())
     }
 
     fun deleteTemplate(templateId: String) {
