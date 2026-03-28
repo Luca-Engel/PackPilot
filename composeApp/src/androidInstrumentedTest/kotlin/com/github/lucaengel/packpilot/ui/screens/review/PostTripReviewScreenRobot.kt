@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 
 class PostTripReviewScreenRobot(
@@ -37,11 +38,15 @@ class PostTripReviewScreenRobot(
     }
 
     fun assertItemDisplayed(name: String) {
-        composeTestRule.onNode(hasTestTagContaining("ReviewItemRow_$name")).assertIsDisplayed()
+        composeTestRule.onNode(hasTestTagContaining("ReviewItemRow_$name"))
+            .performScrollTo()
+            .assertIsDisplayed()
     }
 
     fun assertCategoryHeaderDisplayed(categoryName: String) {
-        composeTestRule.onNodeWithTag("ReviewCategoryHeader_$categoryName").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("ReviewCategoryHeader_$categoryName")
+            .performScrollTo()
+            .assertIsDisplayed()
     }
 
     fun clickSaveAsTemplate() {
@@ -77,11 +82,15 @@ class PostTripReviewScreenRobot(
     }
 
     fun clickFeedbackButton(feedbackTypeName: String, itemId: String) {
-        composeTestRule.onNodeWithTag("FeedbackButton_${feedbackTypeName}_$itemId").performClick()
+        composeTestRule.onNodeWithTag("FeedbackButton_${feedbackTypeName}_$itemId")
+            .performScrollTo()
+            .performClick()
     }
 
     fun assertFeedbackButtonDisplayed(feedbackTypeName: String, itemId: String) {
-        composeTestRule.onNodeWithTag("FeedbackButton_${feedbackTypeName}_$itemId").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("FeedbackButton_${feedbackTypeName}_$itemId")
+            .performScrollTo()
+            .assertIsDisplayed()
     }
 
     fun assertFeedbackQuantityInputDisplayed(itemId: String) {
@@ -117,11 +126,15 @@ class PostTripReviewScreenRobot(
     }
 
     fun assertOriginalQtyDisplayed(itemId: String, text: String) {
-        composeTestRule.onNodeWithTag("ReviewItemOriginalQty_$itemId").assertTextEquals(text)
+        composeTestRule.onNodeWithTag("ReviewItemOriginalQty_$itemId")
+            .performScrollTo()
+            .assertTextEquals(text)
     }
 
     fun assertSuggestedQtyDisplayed(itemId: String, text: String) {
-        composeTestRule.onNodeWithTag("ReviewItemSuggestedQty_$itemId").assertTextEquals(text)
+        composeTestRule.onNodeWithTag("ReviewItemSuggestedQty_$itemId")
+            .performScrollTo()
+            .assertTextEquals(text)
     }
 }
 
