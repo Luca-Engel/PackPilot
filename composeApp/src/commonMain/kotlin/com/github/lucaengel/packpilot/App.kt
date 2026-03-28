@@ -30,12 +30,14 @@ import androidx.navigation.toRoute
 import com.github.lucaengel.packpilot.ui.navigation.CreateTripRoute
 import com.github.lucaengel.packpilot.ui.navigation.EssentialsRoute
 import com.github.lucaengel.packpilot.ui.navigation.HomeRoute
+import com.github.lucaengel.packpilot.ui.navigation.PostTripReviewRoute
 import com.github.lucaengel.packpilot.ui.navigation.TripDetailsRoute
 import com.github.lucaengel.packpilot.ui.navigation.TripTypesRoute
 import com.github.lucaengel.packpilot.ui.screens.create.CreateTripScreen
 import com.github.lucaengel.packpilot.ui.screens.details.TripDetailsScreen
 import com.github.lucaengel.packpilot.ui.screens.essentials.GeneralItemsScreen
 import com.github.lucaengel.packpilot.ui.screens.home.HomeScreen
+import com.github.lucaengel.packpilot.ui.screens.review.PostTripReviewScreen
 import com.github.lucaengel.packpilot.ui.screens.types.ManageTripTypesScreen
 import com.github.lucaengel.packpilot.viewmodel.PackingViewModel
 import kotlinx.coroutines.launch
@@ -118,6 +120,14 @@ fun App(viewModel: PackingViewModel) {
                     composable<TripDetailsRoute> { backStackEntry ->
                         val args = backStackEntry.toRoute<TripDetailsRoute>()
                         TripDetailsScreen(
+                            viewModel = viewModel,
+                            tripId = args.tripId,
+                            onBack = { navController.popBackStack() },
+                        )
+                    }
+                    composable<PostTripReviewRoute> { backStackEntry ->
+                        val args = backStackEntry.toRoute<PostTripReviewRoute>()
+                        PostTripReviewScreen(
                             viewModel = viewModel,
                             tripId = args.tripId,
                             onBack = { navController.popBackStack() },
