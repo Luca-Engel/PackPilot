@@ -92,6 +92,18 @@ class PostTripReviewScreenRobot(
         composeTestRule.onNodeWithTag("FeedbackQuantityInput_$itemId").performTextReplacement(qty)
     }
 
+    fun enterFeedbackPerDays(itemId: String, days: String) {
+        composeTestRule.onNodeWithTag("FeedbackPerDaysInput_$itemId").performTextReplacement(days)
+    }
+
+    fun clickFeedbackQuantityModeTotal(itemId: String) {
+        composeTestRule.onNodeWithTag("FeedbackQuantityModeTotal_$itemId").performClick()
+    }
+
+    fun clickFeedbackQuantityModePerDay(itemId: String) {
+        composeTestRule.onNodeWithTag("FeedbackQuantityModePerDay_$itemId").performClick()
+    }
+
     fun clickConfirmFeedbackQuantity(itemId: String) {
         composeTestRule.onNodeWithTag("ConfirmFeedbackQuantity_$itemId").performClick()
     }
@@ -102,6 +114,14 @@ class PostTripReviewScreenRobot(
         } else {
             composeTestRule.onNodeWithTag("ConfirmFeedbackQuantity_$itemId").assertIsNotEnabled()
         }
+    }
+
+    fun assertOriginalQtyDisplayed(itemId: String, text: String) {
+        composeTestRule.onNodeWithTag("ReviewItemOriginalQty_$itemId").assertTextEquals(text)
+    }
+
+    fun assertSuggestedQtyDisplayed(itemId: String, text: String) {
+        composeTestRule.onNodeWithTag("ReviewItemSuggestedQty_$itemId").assertTextEquals(text)
     }
 }
 

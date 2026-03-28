@@ -27,7 +27,12 @@ enum class FeedbackType {
 data class TripItemFeedback(
     val itemId: String,
     val feedbackType: FeedbackType,
+    // Computed total for the trip (used for template saving)
     val suggestedQuantity: Int? = null,
+    // Whether the suggestion is expressed as a rate (e.g. "1 per 2 days")
+    val suggestedIsPerDay: Boolean = false,
+    val suggestedBaseQuantity: Int? = null,
+    val suggestedQuantityPerDays: Int = 1,
     val timestamp: Long = 0L,
 )
 

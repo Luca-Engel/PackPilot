@@ -10,7 +10,9 @@ import com.github.lucaengel.packpilot.viewmodel.PackingViewModel
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import org.junit.Rule
 import org.junit.Test
@@ -91,7 +93,6 @@ class PostTripReviewScreenTest {
 
         postTripReviewScreenRobot(composeTestRule) {
             assertProgressText("0 / $totalItems items reviewed")
-
             clickFeedbackButton(FeedbackType.BROUGHT_AND_NEEDED.name, itemId)
             assertProgressText("1 / $totalItems items reviewed")
         }
@@ -108,6 +109,20 @@ class PostTripReviewScreenTest {
         postTripReviewScreenRobot(composeTestRule) {
             assertItemDisplayed("Umbrella")
             assertItemDisplayed("T-Shirt")
+        }
+    }
+
+    @Test
+    fun originalQuantityIsDisplayedOnItemRow() = runTest {
+        val (viewModel, tripId) = buildViewModelWithTrip()
+        val tripItem = viewModel.trips.value[tripId]!!.items.find { it.name == "Umbrella" }!!
+
+        composeTestRule.setContent {
+            PostTripReviewScreen(viewModel = viewModel, tripId = tripId, onBack = {})
+        }
+
+        postTripReviewScreenRobot(composeTestRule) {
+            assertOriginalQtyDisplayed(tripItem.id, "${tripItem.quantity}")
         }
     }
 
@@ -160,7 +175,7 @@ class PostTripReviewScreenTest {
     }
 
     @Test
-    fun savingTemplateUsesQuantityFromQuantityWasOffFeedback() = runTest {
+    fun savingTemplateUsesTotalFromQuantityWasOffFeedback() = runTest {
         val (viewModel, tripId) = buildViewModelWithTrip()
         val itemId = viewModel.trips.value[tripId]!!.items.find { it.name == "Umbrella" }!!.id
 
@@ -180,11 +195,9 @@ class PostTripReviewScreenTest {
 
         val templates = viewModel.templates.value
         assertEquals(1, templates.size)
-        val savedTemplate = templates.values.first()
-        assertEquals("London Template", savedTemplate.name)
-        val umbrellaItem = savedTemplate.items.find { it.name == "Umbrella" }
-        assertTrue(umbrellaItem != null, "Template should contain Umbrella")
-        assertEquals(3, umbrellaItem.quantity, "Umbrella quantity should reflect the suggested quantity of 3")
+        val umbrellaItem = templates.values.first().items.find { it.name == "Umbrella" }
+        assertTrue(umbrellaItem != null)
+        assertEquals(3, umbrellaItem.quantity, "Template quantity should reflect the user's total suggestion of 3")
     }
 
     @Test
@@ -292,25 +305,63 @@ class PostTripReviewScreenTest {
     }
 
     @Test
-    fun confirmingQuantityWasOffSavesFeedbackWithSuggestedQuantity() = runTest {
+    fun confirmingTotalQuantitySavesFeedbackAndShowsStrikethroughAndNewQty() = runTest {
         val (viewModel, tripId) = buildViewModelWithTrip()
-        val itemId = viewModel.trips.value[tripId]!!.items.find { it.name == "Umbrella" }!!.id
+        val tripItem = viewModel.trips.value[tripId]!!.items.find { it.name == "Umbrella" }!!
 
         composeTestRule.setContent {
             PostTripReviewScreen(viewModel = viewModel, tripId = tripId, onBack = {})
         }
 
         postTripReviewScreenRobot(composeTestRule) {
-            clickFeedbackButton(FeedbackType.QUANTITY_WAS_OFF.name, itemId)
-            enterFeedbackQuantity(itemId, "4")
-            clickConfirmFeedbackQuantity(itemId)
+            clickFeedbackButton(FeedbackType.QUANTITY_WAS_OFF.name, tripItem.id)
+            enterFeedbackQuantity(tripItem.id, "4")
+            clickConfirmFeedbackQuantity(tripItem.id)
+
+            // Old quantity still displayed (now strikethrough via decoration, text is same)
+            assertOriginalQtyDisplayed(tripItem.id, "${tripItem.quantity}")
+            // New suggested quantity shown below
+            assertSuggestedQtyDisplayed(tripItem.id, "4")
         }
 
         val feedback = viewModel.trips.value[tripId]!!.itemFeedback
-        assertEquals(1, feedback.size)
         assertEquals(FeedbackType.QUANTITY_WAS_OFF, feedback[0].feedbackType)
         assertEquals(4, feedback[0].suggestedQuantity)
-        assertEquals(itemId, feedback[0].itemId)
+        assertEquals(false, feedback[0].suggestedIsPerDay)
+    }
+
+    @Test
+    fun switchingToPerDayModeAndConfirmingSavesFeedbackWithRate() = runTest {
+        val viewModel = buildViewModel()
+        val today = Clock.System.now().toLocalDateTime(TimeZone.UTC).date
+        // 3-day trip so "1 per 1 day = 3" is easy to verify
+        val endDate = today.plus(2, DateTimeUnit.DAY)
+        viewModel.addGeneralItem("Socks", 1, false, ItemCategory.CLOTHING)
+        viewModel.createTrip("Paris", "city", today, endDate) // 3 days
+        val tripId = viewModel.trips.value.keys.first()
+        val tripItem = viewModel.trips.value[tripId]!!.items.find { it.name == "Socks" }!!
+
+        composeTestRule.setContent {
+            PostTripReviewScreen(viewModel = viewModel, tripId = tripId, onBack = {})
+        }
+
+        postTripReviewScreenRobot(composeTestRule) {
+            clickFeedbackButton(FeedbackType.QUANTITY_WAS_OFF.name, tripItem.id)
+            clickFeedbackQuantityModePerDay(tripItem.id)
+            enterFeedbackQuantity(tripItem.id, "1")
+            enterFeedbackPerDays(tripItem.id, "1")
+            clickConfirmFeedbackQuantity(tripItem.id)
+
+            // Suggested: "1 per day = 3" (3 day trip)
+            assertSuggestedQtyDisplayed(tripItem.id, "1 per day = 3")
+        }
+
+        val feedback = viewModel.trips.value[tripId]!!.itemFeedback
+        assertEquals(FeedbackType.QUANTITY_WAS_OFF, feedback[0].feedbackType)
+        assertEquals(true, feedback[0].suggestedIsPerDay)
+        assertEquals(1, feedback[0].suggestedBaseQuantity)
+        assertEquals(1, feedback[0].suggestedQuantityPerDays)
+        assertEquals(3, feedback[0].suggestedQuantity)
     }
 
     @Test

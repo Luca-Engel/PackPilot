@@ -31,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -52,13 +53,18 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.github.lucaengel.packpilot.model.FeedbackType
 import com.github.lucaengel.packpilot.model.ItemCategory
+import com.github.lucaengel.packpilot.model.ItemSource
+import com.github.lucaengel.packpilot.model.PackingItem
 import com.github.lucaengel.packpilot.model.TripItem
 import com.github.lucaengel.packpilot.model.TripItemFeedback
+import com.github.lucaengel.packpilot.model.TripItemSourceInfo
 import com.github.lucaengel.packpilot.viewmodel.PackingViewModel
 import kotlinx.datetime.Clock
+import kotlin.math.ceil
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,6 +75,7 @@ fun PostTripReviewScreen(
 ) {
     val trips by viewModel.trips.collectAsState()
     val trip = trips[tripId] ?: return
+    val items by viewModel.items.collectAsState()
 
     // Adjusted quantities for template saving; updated when QUANTITY_WAS_OFF is confirmed
     var adjustedQuantities by remember {
@@ -218,10 +225,12 @@ fun PostTripReviewScreen(
                     )
                 }
                 items(categoryItems) { tripItem ->
+                    val packingItem = primaryPackingItem(tripItem, items)
                     ReviewItemRow(
                         tripItem = tripItem,
+                        packingItem = packingItem,
                         isReviewed = tripItem.id in reviewedItemIds,
-                        currentFeedback = itemFeedbacks[tripItem.id]?.feedbackType,
+                        currentFeedback = itemFeedbacks[tripItem.id],
                         onFeedbackSelected = { feedbackType ->
                             if (feedbackType == FeedbackType.QUANTITY_WAS_OFF) {
                                 quantityDialogItemId = tripItem.id
@@ -245,62 +254,141 @@ fun PostTripReviewScreen(
     quantityDialogItemId?.let { itemId ->
         val tripItem = trip.items.find { it.id == itemId }
         if (tripItem != null) {
-            var quantityInput by remember(itemId) { mutableStateOf("") }
+            val packingItem = primaryPackingItem(tripItem, items)
+            var isPerDay by remember(itemId) { mutableStateOf(packingItem?.isPerDay ?: false) }
+            var baseQtyInput by remember(itemId) { mutableStateOf("") }
+            var perDaysInput by remember(itemId) {
+                mutableStateOf((packingItem?.quantityPerDays?.coerceAtLeast(1) ?: 1).toString())
+            }
             val focusRequester = remember { FocusRequester() }
+
+            val perDays = perDaysInput.toIntOrNull()?.coerceAtLeast(1) ?: 1
+            val baseQty = baseQtyInput.toIntOrNull() ?: 0
+            val computedTotal = if (isPerDay && baseQty > 0) {
+                ceil(baseQty.toDouble() * trip.days / perDays).toInt()
+            } else {
+                baseQty
+            }
+            val confirmEnabled = baseQty >= 1 && (!isPerDay || perDays >= 1)
 
             AlertDialog(
                 onDismissRequest = { quantityDialogItemId = null },
                 title = { Text("Ideal quantity for ${tripItem.name}") },
                 text = {
                     LaunchedEffect(Unit) { focusRequester.requestFocus() }
-                    TextField(
-                        value = quantityInput,
-                        onValueChange = { quantityInput = it.filter { c -> c.isDigit() } },
-                        label = { Text("Ideal quantity") },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Number,
-                            imeAction = ImeAction.Done,
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onDone = {
-                                val qty = quantityInput.toIntOrNull()
-                                if (qty != null && qty >= 1) {
-                                    val feedback = TripItemFeedback(
-                                        itemId = itemId,
-                                        feedbackType = FeedbackType.QUANTITY_WAS_OFF,
-                                        suggestedQuantity = qty,
-                                        timestamp = Clock.System.now().toEpochMilliseconds(),
-                                    )
-                                    itemFeedbacks = itemFeedbacks + (itemId to feedback)
-                                    adjustedQuantities = adjustedQuantities + (itemId to qty)
-                                    viewModel.saveTripItemFeedback(tripId, feedback)
-                                    quantityDialogItemId = null
-                                }
-                            },
-                        ),
-                        modifier = Modifier
-                            .testTag("FeedbackQuantityInput_$itemId")
-                            .focusRequester(focusRequester),
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // Mode toggle
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (isPerDay) {
+                                OutlinedButton(
+                                    onClick = { isPerDay = false },
+                                    modifier = Modifier.testTag("FeedbackQuantityModeTotal_$itemId"),
+                                ) { Text("Total") }
+                                Button(
+                                    onClick = {},
+                                    modifier = Modifier.testTag("FeedbackQuantityModePerDay_$itemId"),
+                                ) { Text("Per day") }
+                            } else {
+                                Button(
+                                    onClick = {},
+                                    modifier = Modifier.testTag("FeedbackQuantityModeTotal_$itemId"),
+                                ) { Text("Total") }
+                                OutlinedButton(
+                                    onClick = { isPerDay = true },
+                                    modifier = Modifier.testTag("FeedbackQuantityModePerDay_$itemId"),
+                                ) { Text("Per day") }
+                            }
+                        }
+
+                        if (isPerDay) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                TextField(
+                                    value = baseQtyInput,
+                                    onValueChange = { baseQtyInput = it.filter { c -> c.isDigit() } },
+                                    label = { Text("Qty") },
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Number,
+                                        imeAction = ImeAction.Next,
+                                    ),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("FeedbackQuantityInput_$itemId")
+                                        .focusRequester(focusRequester),
+                                )
+                                Text("per", style = MaterialTheme.typography.bodyMedium)
+                                TextField(
+                                    value = perDaysInput,
+                                    onValueChange = { perDaysInput = it.filter { c -> c.isDigit() } },
+                                    label = { Text("Days") },
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Number,
+                                        imeAction = ImeAction.Done,
+                                    ),
+                                    keyboardActions = KeyboardActions(onDone = {
+                                        if (confirmEnabled) {
+                                            saveQuantityOffFeedback(
+                                                itemId, tripItem.id, isPerDay, baseQty, perDays, computedTotal,
+                                                itemFeedbacks, adjustedQuantities, viewModel, tripId,
+                                                onFeedbacksChanged = { itemFeedbacks = it },
+                                                onQuantitiesChanged = { adjustedQuantities = it },
+                                                onDismiss = { quantityDialogItemId = null },
+                                            )
+                                        }
+                                    }),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("FeedbackPerDaysInput_$itemId"),
+                                )
+                            }
+                            if (baseQty > 0) {
+                                Text(
+                                    text = "Total for this trip: $computedTotal",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.secondary,
+                                )
+                            }
+                        } else {
+                            TextField(
+                                value = baseQtyInput,
+                                onValueChange = { baseQtyInput = it.filter { c -> c.isDigit() } },
+                                label = { Text("Total quantity") },
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Number,
+                                    imeAction = ImeAction.Done,
+                                ),
+                                keyboardActions = KeyboardActions(onDone = {
+                                    if (confirmEnabled) {
+                                        saveQuantityOffFeedback(
+                                            itemId, tripItem.id, isPerDay, baseQty, perDays, computedTotal,
+                                            itemFeedbacks, adjustedQuantities, viewModel, tripId,
+                                            onFeedbacksChanged = { itemFeedbacks = it },
+                                            onQuantitiesChanged = { adjustedQuantities = it },
+                                            onDismiss = { quantityDialogItemId = null },
+                                        )
+                                    }
+                                }),
+                                modifier = Modifier
+                                    .testTag("FeedbackQuantityInput_$itemId")
+                                    .focusRequester(focusRequester),
+                            )
+                        }
+                    }
                 },
                 confirmButton = {
-                    val qty = quantityInput.toIntOrNull()
                     TextButton(
                         onClick = {
-                            if (qty != null && qty >= 1) {
-                                val feedback = TripItemFeedback(
-                                    itemId = itemId,
-                                    feedbackType = FeedbackType.QUANTITY_WAS_OFF,
-                                    suggestedQuantity = qty,
-                                    timestamp = Clock.System.now().toEpochMilliseconds(),
-                                )
-                                itemFeedbacks = itemFeedbacks + (itemId to feedback)
-                                adjustedQuantities = adjustedQuantities + (itemId to qty)
-                                viewModel.saveTripItemFeedback(tripId, feedback)
-                                quantityDialogItemId = null
-                            }
+                            saveQuantityOffFeedback(
+                                itemId, tripItem.id, isPerDay, baseQty, perDays, computedTotal,
+                                itemFeedbacks, adjustedQuantities, viewModel, tripId,
+                                onFeedbacksChanged = { itemFeedbacks = it },
+                                onQuantitiesChanged = { adjustedQuantities = it },
+                                onDismiss = { quantityDialogItemId = null },
+                            )
                         },
-                        enabled = qty != null && qty >= 1,
+                        enabled = confirmEnabled,
                         modifier = Modifier.testTag("ConfirmFeedbackQuantity_$itemId"),
                     ) { Text("Confirm") }
                 },
@@ -355,14 +443,75 @@ fun PostTripReviewScreen(
     }
 }
 
+private fun saveQuantityOffFeedback(
+    itemId: String,
+    tripItemId: String,
+    isPerDay: Boolean,
+    baseQty: Int,
+    perDays: Int,
+    computedTotal: Int,
+    itemFeedbacks: Map<String, TripItemFeedback>,
+    adjustedQuantities: Map<String, Int>,
+    viewModel: PackingViewModel,
+    tripId: String,
+    onFeedbacksChanged: (Map<String, TripItemFeedback>) -> Unit,
+    onQuantitiesChanged: (Map<String, Int>) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val feedback = TripItemFeedback(
+        itemId = tripItemId,
+        feedbackType = FeedbackType.QUANTITY_WAS_OFF,
+        suggestedQuantity = computedTotal,
+        suggestedIsPerDay = isPerDay,
+        suggestedBaseQuantity = baseQty,
+        suggestedQuantityPerDays = perDays,
+        timestamp = Clock.System.now().toEpochMilliseconds(),
+    )
+    onFeedbacksChanged(itemFeedbacks + (tripItemId to feedback))
+    onQuantitiesChanged(adjustedQuantities + (tripItemId to computedTotal))
+    viewModel.saveTripItemFeedback(tripId, feedback)
+    onDismiss()
+}
+
+/** Finds the primary [PackingItem] backing a [TripItem], using source priority order. */
+private fun primaryPackingItem(tripItem: TripItem, items: Map<String, PackingItem>): PackingItem? {
+    val prioritised = tripItem.sources.sortedWith(
+        compareByDescending<TripItemSourceInfo> { it.source == ItemSource.CUSTOM }
+            .thenByDescending { it.addedAt }
+            .thenByDescending { it.source == ItemSource.ACTIVITY }
+            .thenByDescending { it.source == ItemSource.ESSENTIAL },
+    )
+    return prioritised.mapNotNull { it.originalItemId?.let { id -> items[id] } }.firstOrNull()
+}
+
+/** Formats the original trip quantity, showing the per-day rate when applicable. */
+private fun formatOriginalQuantity(tripItem: TripItem, packingItem: PackingItem?): String {
+    if (packingItem == null || !packingItem.isPerDay) return "${tripItem.quantity}"
+    val base = packingItem.baseQuantity
+    val perDays = packingItem.quantityPerDays.coerceAtLeast(1)
+    return if (perDays == 1) "$base per day = ${tripItem.quantity}" else "$base per $perDays days = ${tripItem.quantity}"
+}
+
+/** Formats the user's suggested quantity from QUANTITY_WAS_OFF feedback. */
+private fun formatSuggestedQuantity(feedback: TripItemFeedback): String {
+    val total = feedback.suggestedQuantity ?: return ""
+    if (!feedback.suggestedIsPerDay) return "$total"
+    val base = feedback.suggestedBaseQuantity ?: total
+    val perDays = feedback.suggestedQuantityPerDays.coerceAtLeast(1)
+    return if (perDays == 1) "$base per day = $total" else "$base per $perDays days = $total"
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ReviewItemRow(
     tripItem: TripItem,
+    packingItem: PackingItem?,
     isReviewed: Boolean,
-    currentFeedback: FeedbackType?,
+    currentFeedback: TripItemFeedback?,
     onFeedbackSelected: (FeedbackType) -> Unit,
 ) {
+    val hasQuantityOffFeedback = currentFeedback?.feedbackType == FeedbackType.QUANTITY_WAS_OFF
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -375,21 +524,53 @@ private fun ReviewItemRow(
         shape = RoundedCornerShape(16.dp),
     ) {
         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-            Text(
-                tripItem.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = if (isReviewed) FontWeight.Normal else FontWeight.Bold,
-                color = if (isReviewed) {
-                    MaterialTheme.colorScheme.outline
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
-            )
-            Text(
-                tripItem.category.displayName,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        tripItem.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = if (isReviewed) FontWeight.Normal else FontWeight.Bold,
+                        color = if (isReviewed) {
+                            MaterialTheme.colorScheme.outline
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                    )
+                    Text(
+                        tripItem.category.displayName,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = formatOriginalQuantity(tripItem, packingItem),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        textDecoration = if (hasQuantityOffFeedback) TextDecoration.LineThrough else null,
+                        color = if (hasQuantityOffFeedback) {
+                            MaterialTheme.colorScheme.outline
+                        } else if (isReviewed) {
+                            MaterialTheme.colorScheme.outline
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                        modifier = Modifier.testTag("ReviewItemOriginalQty_${tripItem.id}"),
+                    )
+                    if (hasQuantityOffFeedback && currentFeedback?.suggestedQuantity != null) {
+                        Text(
+                            text = formatSuggestedQuantity(currentFeedback),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.testTag("ReviewItemSuggestedQty_${tripItem.id}"),
+                        )
+                    }
+                }
+            }
             Spacer(Modifier.height(6.dp))
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
@@ -397,7 +578,7 @@ private fun ReviewItemRow(
             ) {
                 FeedbackType.entries.forEach { feedbackType ->
                     FilterChip(
-                        selected = currentFeedback == feedbackType,
+                        selected = currentFeedback?.feedbackType == feedbackType,
                         onClick = { onFeedbackSelected(feedbackType) },
                         label = {
                             Text(
