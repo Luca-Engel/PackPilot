@@ -11,6 +11,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.*
 import org.junit.Rule
 import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class TripDetailsScreenTest {
     @get:Rule
@@ -715,13 +717,12 @@ class TripDetailsScreenTest {
             }
 
             val templates = viewModel.templates.value
-            assert(templates.size == 1) { "Expected 1 template but found ${templates.size}" }
-            assert(templates.values.first().name == "London Template") {
-                "Expected template name 'London Template' but was '${templates.values.first().name}'"
-            }
-            assert(templates.values.first().items.any { it.name == "Umbrella" }) {
-                "Expected template to contain 'Umbrella'"
-            }
+            assertEquals(1, templates.size, "Expected 1 template but found ${templates.size}")
+            assertEquals("London Template", templates.values.first().name)
+            assertTrue(
+                templates.values.first().items.any { it.name == "Umbrella" },
+                "Expected template to contain 'Umbrella'",
+            )
         }
 
     @Test
