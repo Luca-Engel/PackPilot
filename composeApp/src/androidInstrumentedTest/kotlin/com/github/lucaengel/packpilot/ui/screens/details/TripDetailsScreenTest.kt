@@ -503,6 +503,92 @@ class TripDetailsScreenTest {
         }
 
     @Test
+    fun deleteTripButtonHiddenInEditModeAndVisibleInViewMode() =
+        runTest {
+            val testScope = TestScope()
+            val repository = PackingRepository(FakeDataStoreManager(), testScope)
+            val viewModel = PackingViewModel(repository)
+
+            val today = Clock.System.now().toLocalDateTime(TimeZone.UTC).date
+            viewModel.createTrip("London", "city", today, today)
+            val tripId = viewModel.trips.value.keys.first()
+
+            composeTestRule.setContent {
+                TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
+            }
+
+            tripDetailsScreenRobot(composeTestRule) {
+                assertDeleteTripButtonExists()
+
+                clickEdit()
+                assertDeleteTripButtonDoesNotExist()
+                assertStopEditingButtonExists()
+
+                clickSave()
+                assertDeleteTripButtonExists()
+            }
+        }
+
+    @Test
+    fun stopEditingShowsDiscardDialog() =
+        runTest {
+            val testScope = TestScope()
+            val repository = PackingRepository(FakeDataStoreManager(), testScope)
+            val viewModel = PackingViewModel(repository)
+
+            val today = Clock.System.now().toLocalDateTime(TimeZone.UTC).date
+            viewModel.createTrip("London", "city", today, today)
+            val tripId = viewModel.trips.value.keys.first()
+
+            composeTestRule.setContent {
+                TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
+            }
+
+            tripDetailsScreenRobot(composeTestRule) {
+                clickEdit()
+                clickStopEditing()
+                assertDiscardDialogIsDisplayed()
+            }
+        }
+
+    @Test
+    fun confirmingDiscardRollsBackChangesAndExitsEditMode() =
+        runTest {
+            val testScope = TestScope()
+            val repository = PackingRepository(FakeDataStoreManager(), testScope)
+            val viewModel = PackingViewModel(repository)
+
+            val today = Clock.System.now().toLocalDateTime(TimeZone.UTC).date
+            viewModel.createTrip("London", "city", today, today)
+            val tripId = viewModel.trips.value.keys.first()
+            viewModel.addCustomItemToTrip(tripId, "Umbrella", 1)
+
+            composeTestRule.setContent {
+                TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
+            }
+
+            tripDetailsScreenRobot(composeTestRule) {
+                assertItemExists("Umbrella")
+
+                clickEdit()
+                clickAddCustomItem()
+                enterCustomItemName("Sunscreen")
+                enterCustomItemQty("1")
+                clickConfirmAddCustomItem()
+                assertItemExists("Sunscreen")
+
+                clickStopEditing()
+                confirmDiscardEdits()
+
+                // Edit mode exited
+                assertEditModeButtonExists()
+                // Original item still exists; newly added item is rolled back
+                assertItemExists("Umbrella")
+                assertItemDoesNotExist("Sunscreen")
+            }
+        }
+
+    @Test
     fun deleteTripDialogIsShown() =
         runTest {
             val testScope = TestScope()
