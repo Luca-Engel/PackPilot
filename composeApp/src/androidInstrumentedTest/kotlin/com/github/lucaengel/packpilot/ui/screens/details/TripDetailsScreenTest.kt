@@ -11,6 +11,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.*
 import org.junit.Rule
 import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class TripDetailsScreenTest {
     @get:Rule
@@ -613,6 +615,114 @@ class TripDetailsScreenTest {
                 clickDeleteTrip()
                 assertDeleteDialogIsDisplayed()
             }
+        }
+
+    @Test
+    fun saveAsTemplateButtonExistsInViewModeAndHiddenInEditMode() =
+        runTest {
+            val testScope = TestScope()
+            val repository = PackingRepository(FakeDataStoreManager(), testScope)
+            val viewModel = PackingViewModel(repository)
+
+            val today = Clock.System.now().toLocalDateTime(TimeZone.UTC).date
+            viewModel.createTrip("London", "city", today, today)
+            val tripId = viewModel.trips.value.keys.first()
+
+            composeTestRule.setContent {
+                TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
+            }
+
+            tripDetailsScreenRobot(composeTestRule) {
+                assertSaveAsTemplateButtonExists()
+
+                clickEdit()
+                assertSaveAsTemplateButtonDoesNotExist()
+
+                clickSave()
+                assertSaveAsTemplateButtonExists()
+            }
+        }
+
+    @Test
+    fun saveAsTemplateDialogIsShownOnButtonClick() =
+        runTest {
+            val testScope = TestScope()
+            val repository = PackingRepository(FakeDataStoreManager(), testScope)
+            val viewModel = PackingViewModel(repository)
+
+            val today = Clock.System.now().toLocalDateTime(TimeZone.UTC).date
+            viewModel.createTrip("London", "city", today, today)
+            val tripId = viewModel.trips.value.keys.first()
+
+            composeTestRule.setContent {
+                TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
+            }
+
+            tripDetailsScreenRobot(composeTestRule) {
+                clickSaveAsTemplate()
+                assertSaveAsTemplateDialogDisplayed()
+            }
+        }
+
+    @Test
+    fun confirmSaveAsTemplateDisabledWhenNameBlank() =
+        runTest {
+            val testScope = TestScope()
+            val repository = PackingRepository(FakeDataStoreManager(), testScope)
+            val viewModel = PackingViewModel(repository)
+
+            val today = Clock.System.now().toLocalDateTime(TimeZone.UTC).date
+            viewModel.createTrip("London", "city", today, today)
+            val tripId = viewModel.trips.value.keys.first()
+
+            composeTestRule.setContent {
+                TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
+            }
+
+            tripDetailsScreenRobot(composeTestRule) {
+                clickSaveAsTemplate()
+                assertConfirmSaveAsTemplateEnabled(false)
+
+                enterTemplateName("   ")
+                assertConfirmSaveAsTemplateEnabled(false)
+
+                enterTemplateName("My Template")
+                assertConfirmSaveAsTemplateEnabled(true)
+            }
+        }
+
+    @Test
+    fun savingTripAsTemplateCreatesTemplate() =
+        runTest {
+            val testScope = TestScope()
+            val repository = PackingRepository(FakeDataStoreManager(), testScope)
+            val viewModel = PackingViewModel(repository)
+
+            val today = Clock.System.now().toLocalDateTime(TimeZone.UTC).date
+            viewModel.createTrip("London", "city", today, today)
+            val tripId = viewModel.trips.value.keys.first()
+            viewModel.addCustomItemToTrip(tripId, "Umbrella", 2)
+
+            composeTestRule.setContent {
+                TripDetailsScreen(viewModel = viewModel, tripId = tripId, onBack = {})
+            }
+
+            tripDetailsScreenRobot(composeTestRule) {
+                clickSaveAsTemplate()
+                enterTemplateName("London Template")
+                clickConfirmSaveAsTemplate()
+
+                // Dialog dismissed and button still visible
+                assertSaveAsTemplateButtonExists()
+            }
+
+            val templates = viewModel.templates.value
+            assertEquals(1, templates.size, "Expected 1 template but found ${templates.size}")
+            assertEquals("London Template", templates.values.first().name)
+            assertTrue(
+                templates.values.first().items.any { it.name == "Umbrella" },
+                "Expected template to contain 'Umbrella'",
+            )
         }
 
     @Test

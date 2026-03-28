@@ -21,6 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BookmarkAdd
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
@@ -102,6 +103,7 @@ fun TripDetailsScreen(
     var showDiscardDialog by remember { mutableStateOf(false) }
     var showAddCustomDialog by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var showSaveAsTemplateDialog by remember { mutableStateOf(false) }
 
     val dateRangePickerState =
         rememberDateRangePickerState(
@@ -159,6 +161,12 @@ fun TripDetailsScreen(
                             isEditMode = true
                         }, modifier = Modifier.testTag("EditModeButton")) {
                             Icon(Icons.Default.Edit, "Edit")
+                        }
+                        IconButton(
+                            onClick = { showSaveAsTemplateDialog = true },
+                            modifier = Modifier.testTag("SaveAsTemplateButton"),
+                        ) {
+                            Icon(Icons.Default.BookmarkAdd, "Save as Template")
                         }
                         IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.testTag("DeleteTripButton")) {
                             Icon(Icons.Default.Delete, "Delete Trip", tint = MaterialTheme.colorScheme.error)
@@ -446,6 +454,51 @@ fun TripDetailsScreen(
                 ) { Text("Add") }
             },
             dismissButton = { TextButton(onClick = { showAddCustomDialog = false }) { Text("Cancel") } },
+        )
+    }
+
+    if (showSaveAsTemplateDialog) {
+        var templateName by remember { mutableStateOf("") }
+        val templateNameFocusRequester = remember { FocusRequester() }
+
+        AlertDialog(
+            onDismissRequest = { showSaveAsTemplateDialog = false },
+            title = { Text("Save as Template") },
+            text = {
+                LaunchedEffect(Unit) {
+                    templateNameFocusRequester.requestFocus()
+                }
+                TextField(
+                    value = templateName,
+                    onValueChange = { templateName = it },
+                    label = { Text("Template Name") },
+                    modifier = Modifier
+                        .testTag("TemplateNameInput")
+                        .focusRequester(templateNameFocusRequester),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            if (templateName.isNotBlank()) {
+                                viewModel.saveCurrentTripAsTemplate(tripId, templateName.trim())
+                                showSaveAsTemplateDialog = false
+                            }
+                        },
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.saveCurrentTripAsTemplate(tripId, templateName.trim())
+                        showSaveAsTemplateDialog = false
+                    },
+                    enabled = templateName.isNotBlank(),
+                    modifier = Modifier.testTag("ConfirmSaveAsTemplate"),
+                ) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSaveAsTemplateDialog = false }) { Text("Cancel") }
+            },
         )
     }
 
