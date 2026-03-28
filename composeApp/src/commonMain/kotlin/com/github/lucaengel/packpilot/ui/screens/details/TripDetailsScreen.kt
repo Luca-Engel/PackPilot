@@ -476,6 +476,14 @@ fun TripDetailsScreen(
                         .testTag("TemplateNameInput")
                         .focusRequester(templateNameFocusRequester),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            if (templateName.isNotBlank()) {
+                                viewModel.saveCurrentTripAsTemplate(tripId, templateName.trim())
+                                showSaveAsTemplateDialog = false
+                            }
+                        },
+                    ),
                 )
             },
             confirmButton = {
