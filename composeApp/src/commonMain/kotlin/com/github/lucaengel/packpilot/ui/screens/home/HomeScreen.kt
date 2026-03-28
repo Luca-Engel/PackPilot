@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -28,9 +29,11 @@ fun HomeScreen(
     onCreateTrip: () -> Unit,
     onSelectTrip: (String) -> Unit,
     onOpenDrawer: () -> Unit,
+    onReviewTrip: (String) -> Unit = {},
 ) {
     val plannedTrips by viewModel.getPlannedTrips().collectAsState(emptyList())
     val pastTrips by viewModel.getPastTrips().collectAsState(emptyList())
+    val tripsAwaitingReview by viewModel.getTripsAwaitingReview().collectAsState(emptyList())
 
     Scaffold(
         topBar = {
@@ -68,6 +71,20 @@ fun HomeScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if (tripsAwaitingReview.isNotEmpty()) {
+                    item {
+                        Text(
+                            "Review Needed",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                    items(tripsAwaitingReview, key = { it.id }) { trip ->
+                        ReviewPromptCard(trip, onReview = { onReviewTrip(trip.id) })
+                    }
+                }
+
                 if (plannedTrips.isNotEmpty()) {
                     items(plannedTrips) { trip ->
                         TripCard(trip, onClick = { onSelectTrip(trip.id) })
@@ -90,6 +107,46 @@ fun HomeScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun ReviewPromptCard(
+    trip: Trip,
+    onReview: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().testTag("ReviewPromptCard_${trip.title}"),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Default.RateReview,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.padding(end = 12.dp),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    trip.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+                Text(
+                    "Your trip ended — ready to review?",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+            }
+            TextButton(onClick = onReview) {
+                Text("Review", color = MaterialTheme.colorScheme.tertiary)
             }
         }
     }

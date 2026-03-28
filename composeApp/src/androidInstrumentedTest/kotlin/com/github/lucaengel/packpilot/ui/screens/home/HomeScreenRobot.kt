@@ -54,6 +54,21 @@ class HomeScreenRobot(private val composeTestRule: ComposeContentTestRule) {
         composeTestRule.onNodeWithText("Essential Items").assertIsDisplayed()
         composeTestRule.onNodeWithText("Trip Types").assertIsDisplayed()
     }
+
+    fun assertReviewPromptDisplayed(title: String) {
+        composeTestRule.onNode(hasTestTagContaining("ReviewPromptCard_$title")).assertIsDisplayed()
+    }
+
+    fun assertReviewPromptNotDisplayed(title: String) {
+        composeTestRule.onNode(hasTestTagContaining("ReviewPromptCard_$title")).assertDoesNotExist()
+    }
+
+    fun clickReviewPrompt(title: String) {
+        composeTestRule.onNode(hasTestTagContaining("ReviewPromptCard_$title"))
+            .onChildren()
+            .filterToOne(hasText("Review"))
+            .performClick()
+    }
 }
 
 fun homeScreenRobot(composeTestRule: ComposeContentTestRule, block: HomeScreenRobot.() -> Unit) {

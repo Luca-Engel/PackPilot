@@ -758,4 +758,80 @@ class PackingViewModelTest {
                 cancelAndIgnoreRemainingEvents()
             }
         }
+
+    @Test
+    fun getTripsAwaitingReview_returnsPastUnreviewedTrips() =
+        runTest {
+            val repository = PackingRepository(FakeDataStoreManager(), backgroundScope)
+            val viewModel = PackingViewModel(repository)
+            waitForInitialization(viewModel)
+
+            val pastDate = LocalDate(2020, 1, 1)
+            val futureDate = LocalDate(2099, 12, 31)
+
+            val pastUnreviewed = Trip(id = "t1", title = "Past Unreviewed", startDate = pastDate, endDate = pastDate, isReviewed = false)
+            val pastReviewed = Trip(id = "t2", title = "Past Reviewed", startDate = pastDate, endDate = pastDate, isReviewed = true)
+            val upcoming = Trip(id = "t3", title = "Upcoming", startDate = futureDate, endDate = futureDate, isReviewed = false)
+
+            repository.addTrip(pastUnreviewed)
+            repository.addTrip(pastReviewed)
+            repository.addTrip(upcoming)
+
+            viewModel.getTripsAwaitingReview().test {
+                var result = awaitItem()
+                while (result.isEmpty()) result = awaitItem()
+
+                assertEquals(1, result.size)
+                assertEquals("Past Unreviewed", result[0].title)
+
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun markTripReviewed_removesItFromAwaitingReview() =
+        runTest {
+            val repository = PackingRepository(FakeDataStoreManager(), backgroundScope)
+            val viewModel = PackingViewModel(repository)
+            waitForInitialization(viewModel)
+
+            val pastDate = LocalDate(2020, 1, 1)
+            val trip = Trip(id = "t1", title = "Past Trip", startDate = pastDate, endDate = pastDate, isReviewed = false)
+            repository.addTrip(trip)
+
+            viewModel.getTripsAwaitingReview().test {
+                var result = awaitItem()
+                while (result.isEmpty()) result = awaitItem()
+                assertEquals(1, result.size)
+
+                viewModel.markTripReviewed("t1")
+
+                result = awaitItem()
+                while (result.isNotEmpty()) result = awaitItem()
+                assertTrue(result.isEmpty())
+
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun saveReviewedTripAsTemplate_marksTrip_asReviewed() =
+        runTest {
+            val repository = PackingRepository(FakeDataStoreManager(), backgroundScope)
+            val viewModel = PackingViewModel(repository)
+            waitForInitialization(viewModel)
+
+            val pastDate = LocalDate(2020, 1, 1)
+            val trip = Trip(id = "t1", title = "Past Trip", startDate = pastDate, endDate = pastDate, isReviewed = false)
+            repository.addTrip(trip)
+
+            viewModel.saveReviewedTripAsTemplate("t1", "My Template", emptyMap())
+
+            viewModel.trips.test {
+                var trips = awaitItem()
+                while (trips["t1"]?.isReviewed != true) trips = awaitItem()
+                assertTrue(trips["t1"]!!.isReviewed)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
 }
