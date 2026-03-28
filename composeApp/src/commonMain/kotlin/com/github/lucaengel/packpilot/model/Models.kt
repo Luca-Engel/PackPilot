@@ -88,3 +88,19 @@ data class CategorySection(
     val category: ItemCategory,
     val items: List<TripItem>,
 )
+
+@Serializable
+data class TemplateItem(
+    val name: String,
+    val quantity: Int,
+    val category: ItemCategory = ItemCategory.OTHER,
+    val source: ItemSource = ItemSource.CUSTOM,
+)
+
+@Serializable
+data class TripTemplate(
+    val id: String,
+    val name: String,
+    val createdAt: Long = Clock.System.now().toEpochMilliseconds(),
+    val items: List<TemplateItem> = emptyList(),
+)
