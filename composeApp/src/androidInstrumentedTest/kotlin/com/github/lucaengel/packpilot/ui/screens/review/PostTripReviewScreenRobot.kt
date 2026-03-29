@@ -31,14 +31,17 @@ class PostTripReviewScreenRobot(
     }
 
     fun assertProgressTextDisplayed() {
+        scrollListToNode(hasTestTag("ReviewProgressText"))
         composeTestRule.onNodeWithTag("ReviewProgressText").assertIsDisplayed()
     }
 
     fun assertProgressText(text: String) {
+        scrollListToNode(hasTestTag("ReviewProgressText"))
         composeTestRule.onNodeWithTag("ReviewProgressText").assertTextEquals(text)
     }
 
     fun assertProgressIndicatorDisplayed() {
+        scrollListToNode(hasTestTag("ReviewProgressIndicator"))
         composeTestRule.onNodeWithTag("ReviewProgressIndicator").assertIsDisplayed()
     }
 
