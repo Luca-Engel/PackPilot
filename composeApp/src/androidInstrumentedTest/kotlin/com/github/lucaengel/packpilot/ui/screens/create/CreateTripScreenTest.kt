@@ -24,6 +24,7 @@ class CreateTripScreenTest {
         return PackingViewModel(repository)
     }
 
+    /** Creates a ViewModel that already has one saved template (from a trip with no trip type). */
     private fun buildViewModelWithTemplate(): PackingViewModel {
         val viewModel = buildViewModel()
         val today = Clock.System.now().toLocalDateTime(TimeZone.UTC).date
@@ -65,7 +66,7 @@ class CreateTripScreenTest {
     }
 
     @Test
-    fun templateSectionIsNotShownWhenNoTemplatesExist() {
+    fun modeSelectorIsNotShownWhenNoTemplatesExist() {
         val viewModel = buildViewModel()
 
         composeTestRule.setContent {
@@ -73,12 +74,25 @@ class CreateTripScreenTest {
         }
 
         createTripScreenRobot(composeTestRule) {
-            assertTemplateSectionNotVisible()
+            assertModeSelectorNotVisible()
         }
     }
 
     @Test
-    fun templateSectionIsShownWhenTemplatesExist() {
+    fun activityTypeSectionIsShownByDefaultWhenNoTemplatesExist() {
+        val viewModel = buildViewModel()
+
+        composeTestRule.setContent {
+            CreateTripScreen(viewModel = viewModel, onTripCreated = {}, onBack = {})
+        }
+
+        createTripScreenRobot(composeTestRule) {
+            assertActivityTypeSectionVisible()
+        }
+    }
+
+    @Test
+    fun modeSelectorIsShownWhenTemplatesExist() {
         val viewModel = buildViewModelWithTemplate()
 
         composeTestRule.setContent {
@@ -86,7 +100,65 @@ class CreateTripScreenTest {
         }
 
         createTripScreenRobot(composeTestRule) {
+            assertModeSelectorVisible()
+        }
+    }
+
+    @Test
+    fun activityTypeSectionIsShownByDefaultInScratchMode() {
+        val viewModel = buildViewModelWithTemplate()
+
+        composeTestRule.setContent {
+            CreateTripScreen(viewModel = viewModel, onTripCreated = {}, onBack = {})
+        }
+
+        createTripScreenRobot(composeTestRule) {
+            // Default is scratch mode — activity types should be visible
+            assertActivityTypeSectionVisible()
+        }
+    }
+
+    @Test
+    fun switchingToTemplateModeHidesActivityTypeSection() {
+        val viewModel = buildViewModelWithTemplate()
+
+        composeTestRule.setContent {
+            CreateTripScreen(viewModel = viewModel, onTripCreated = {}, onBack = {})
+        }
+
+        createTripScreenRobot(composeTestRule) {
+            clickUseTemplate()
+            assertActivityTypeSectionNotVisible()
+        }
+    }
+
+    @Test
+    fun switchingToTemplateModeShowsTemplates() {
+        val viewModel = buildViewModelWithTemplate()
+
+        composeTestRule.setContent {
+            CreateTripScreen(viewModel = viewModel, onTripCreated = {}, onBack = {})
+        }
+
+        createTripScreenRobot(composeTestRule) {
+            clickUseTemplate()
             assertTemplateOptionDisplayed("London Template")
+        }
+    }
+
+    @Test
+    fun switchingBackToScratchModeShowsActivityTypeSection() {
+        val viewModel = buildViewModelWithTemplate()
+
+        composeTestRule.setContent {
+            CreateTripScreen(viewModel = viewModel, onTripCreated = {}, onBack = {})
+        }
+
+        createTripScreenRobot(composeTestRule) {
+            clickUseTemplate()
+            assertActivityTypeSectionNotVisible()
+            clickStartFromScratch()
+            assertActivityTypeSectionVisible()
         }
     }
 
@@ -99,6 +171,7 @@ class CreateTripScreenTest {
         }
 
         createTripScreenRobot(composeTestRule) {
+            clickUseTemplate()
             selectTemplate("London Template")
             assertTemplateSelected("London Template")
         }
@@ -113,10 +186,25 @@ class CreateTripScreenTest {
         }
 
         createTripScreenRobot(composeTestRule) {
+            clickUseTemplate()
             selectTemplate("London Template")
             assertTemplateSelected("London Template")
             selectTemplate("London Template")
             assertTemplateNotSelected("London Template")
+        }
+    }
+
+    @Test
+    fun templatesWithoutTripTypeAreGroupedUnderOther() {
+        val viewModel = buildViewModelWithTemplate() // template has no tripTypeId (city = no real list)
+
+        composeTestRule.setContent {
+            CreateTripScreen(viewModel = viewModel, onTripCreated = {}, onBack = {})
+        }
+
+        createTripScreenRobot(composeTestRule) {
+            clickUseTemplate()
+            assertTemplateGroupHeaderDisplayed("Other")
         }
     }
 }

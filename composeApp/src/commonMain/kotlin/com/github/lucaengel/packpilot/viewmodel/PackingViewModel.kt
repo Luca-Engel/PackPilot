@@ -691,6 +691,7 @@ class PackingViewModel(
                 name = templateName,
                 createdAt = Clock.System.now().toEpochMilliseconds(),
                 items = templateItems,
+                tripTypeId = trip.tripTypeId,
             )
         repository.addTemplate(template)
         markTripReviewed(tripId)
