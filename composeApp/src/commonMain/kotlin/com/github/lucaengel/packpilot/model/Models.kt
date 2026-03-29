@@ -135,4 +135,5 @@ data class TripTemplate(
     val name: String,
     val createdAt: Long = Clock.System.now().toEpochMilliseconds(),
     val items: List<TemplateItem> = emptyList(),
+    val tripTypeId: String? = null,
 )
