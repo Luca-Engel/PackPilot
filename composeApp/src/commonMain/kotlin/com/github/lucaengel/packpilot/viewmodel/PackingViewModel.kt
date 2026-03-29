@@ -135,6 +135,7 @@ class PackingViewModel(
         startDate: LocalDate,
         endDate: LocalDate,
         maxDaysBetweenWashes: Int? = null,
+        templateId: String? = null,
     ) {
         recordHistory()
         val tripUid = "trip_${Clock.System.now().toEpochMilliseconds()}_${Random.nextInt(1000)}"
@@ -200,7 +201,37 @@ class PackingViewModel(
                 )
             }
 
-        repository.addTrip(tempTrip.copy(items = tripItems))
+        val finalTripItems = if (templateId != null) {
+            mergeTemplateItems(tripItems, templateId)
+        } else {
+            tripItems
+        }
+
+        repository.addTrip(tempTrip.copy(items = finalTripItems))
+    }
+
+    private fun mergeTemplateItems(tripItems: List<TripItem>, templateId: String): List<TripItem> {
+        val template = templates.value[templateId] ?: return tripItems
+        val existingKeys = tripItems.map { normalizer.normalize(it.name) to it.category }.toSet()
+        val templateOnlyItems = template.items
+            .filter { normalizer.normalize(it.name) to it.category !in existingKeys }
+            .map { templateItem ->
+                TripItem(
+                    id = "trip_item_${Random.nextInt()}",
+                    name = templateItem.name,
+                    quantity = templateItem.quantity,
+                    category = templateItem.category,
+                    sources = listOf(
+                        TripItemSourceInfo(
+                            source = ItemSource.CUSTOM,
+                            name = templateItem.name,
+                            quantity = templateItem.quantity,
+                            category = templateItem.category,
+                        ),
+                    ),
+                )
+            }
+        return tripItems + templateOnlyItems
     }
 
     private fun selectWinningSource(sources: List<TripItemSourceInfo>): TripItemSourceInfo {

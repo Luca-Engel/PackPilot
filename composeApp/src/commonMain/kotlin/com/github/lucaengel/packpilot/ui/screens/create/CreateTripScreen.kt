@@ -29,6 +29,7 @@ import kotlinx.datetime.*
 fun CreateTripScreen(viewModel: PackingViewModel, onTripCreated: () -> Unit, onBack: () -> Unit) {
     var title by remember { mutableStateOf("") }
     var selectedListId by remember { mutableStateOf("") }
+    var selectedTemplateId by remember { mutableStateOf<String?>(null) }
     var searchQuery by remember { mutableStateOf("") }
     var showDatePicker by remember { mutableStateOf(false) }
     var maxDaysBetweenWashes by remember { mutableStateOf("") }
@@ -37,6 +38,7 @@ fun CreateTripScreen(viewModel: PackingViewModel, onTripCreated: () -> Unit, onB
 
     val dateRangePickerState = rememberDateRangePickerState()
     val lists by viewModel.lists.collectAsState()
+    val templates by viewModel.templates.collectAsState()
     val filteredLists = lists.values.filter { !it.isGeneral && it.title.contains(searchQuery, ignoreCase = true) }
 
     Scaffold(
@@ -53,7 +55,7 @@ fun CreateTripScreen(viewModel: PackingViewModel, onTripCreated: () -> Unit, onB
                         val start = Instant.fromEpochMilliseconds(dateRangePickerState.selectedStartDateMillis!!).toLocalDateTime(TimeZone.UTC).date
                         val end = Instant.fromEpochMilliseconds(dateRangePickerState.selectedEndDateMillis!!).toLocalDateTime(TimeZone.UTC).date
                         val laundryDays = maxDaysBetweenWashes.toIntOrNull()
-                        viewModel.createTrip(title, selectedListId, start, end, laundryDays)
+                        viewModel.createTrip(title, selectedListId, start, end, laundryDays, selectedTemplateId)
                         onTripCreated()
                     },
                     modifier = Modifier.padding(16.dp).fillMaxWidth().height(56.dp).testTag("ConfirmTripButton"),
@@ -65,88 +67,130 @@ fun CreateTripScreen(viewModel: PackingViewModel, onTripCreated: () -> Unit, onB
             }
         }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding).padding(16.dp).fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                label = { Text("Trip Name") },
-                modifier = Modifier.fillMaxWidth().testTag("TripNameInput"),
-                shape = RoundedCornerShape(12.dp)
-            )
+        LazyColumn(
+            modifier = Modifier.padding(padding).fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            item {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Trip Name") },
+                    modifier = Modifier.fillMaxWidth().testTag("TripNameInput"),
+                    shape = RoundedCornerShape(12.dp),
+                )
+            }
 
-            OutlinedCard(
-                onClick = { showDatePicker = true },
-                modifier = Modifier.fillMaxWidth().testTag("DateSelectorCard"),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.CalendarMonth, null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        if (dateRangePickerState.selectedStartDateMillis != null && dateRangePickerState.selectedEndDateMillis != null) {
-                            val start = Instant.fromEpochMilliseconds(dateRangePickerState.selectedStartDateMillis!!).toLocalDateTime(TimeZone.UTC).date
-                            val end = Instant.fromEpochMilliseconds(dateRangePickerState.selectedEndDateMillis!!).toLocalDateTime(TimeZone.UTC).date
-                            "$start to $end"
-                        } else "Select Trip Dates",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+            item {
+                OutlinedCard(
+                    onClick = { showDatePicker = true },
+                    modifier = Modifier.fillMaxWidth().testTag("DateSelectorCard"),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.CalendarMonth, null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            if (dateRangePickerState.selectedStartDateMillis != null && dateRangePickerState.selectedEndDateMillis != null) {
+                                val start = Instant.fromEpochMilliseconds(dateRangePickerState.selectedStartDateMillis!!).toLocalDateTime(TimeZone.UTC).date
+                                val end = Instant.fromEpochMilliseconds(dateRangePickerState.selectedEndDateMillis!!).toLocalDateTime(TimeZone.UTC).date
+                                "$start to $end"
+                            } else "Select Trip Dates",
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                    }
                 }
             }
 
-            OutlinedTextField(
-                value = maxDaysBetweenWashes,
-                onValueChange = {
-                    if (it.all { char -> char.isDigit() }) {
-                        // Reject "0" (or "00", etc.) as valid input to ensure positive values only
-                        if (it.isNotEmpty() && it.toLongOrNull() == 0L) return@OutlinedTextField
-                        maxDaysBetweenWashes = it
-                    }
-                },
-                label = { Text("Max days between washes (optional)") },
-                placeholder = { Text("e.g. 7") },
-                modifier = Modifier.fillMaxWidth().testTag("MaxDaysBetweenWashesInput"),
-                shape = RoundedCornerShape(12.dp),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Number,
-                    imeAction = ImeAction.Done,
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        keyboardController?.hide()
-                        focusManager.clearFocus()
+            item {
+                OutlinedTextField(
+                    value = maxDaysBetweenWashes,
+                    onValueChange = {
+                        if (it.all { char -> char.isDigit() }) {
+                            // Reject "0" (or "00", etc.) as valid input to ensure positive values only
+                            if (it.isNotEmpty() && it.toLongOrNull() == 0L) return@OutlinedTextField
+                            maxDaysBetweenWashes = it
+                        }
                     },
-                ),
-                leadingIcon = { Icon(Icons.Default.LocalLaundryService, null) }
-            )
+                    label = { Text("Max days between washes (optional)") },
+                    placeholder = { Text("e.g. 7") },
+                    modifier = Modifier.fillMaxWidth().testTag("MaxDaysBetweenWashesInput"),
+                    shape = RoundedCornerShape(12.dp),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            keyboardController?.hide()
+                            focusManager.clearFocus()
+                        },
+                    ),
+                    leadingIcon = { Icon(Icons.Default.LocalLaundryService, null) },
+                )
+            }
 
-            Text("Activity Type", style = MaterialTheme.typography.titleMedium)
-            
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = { Text("Search activity type...") },
-                leadingIcon = { Icon(Icons.Default.Search, null) },
-                modifier = Modifier.fillMaxWidth().testTag("ActivitySearchInput"),
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(filteredLists) { list ->
-                    val isSelected = selectedListId == list.id
+            if (templates.isNotEmpty()) {
+                item {
+                    Text(
+                        "Start from Template (optional)",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.testTag("TemplateSectionHeader"),
+                    )
+                }
+                items(templates.values.toList()) { template ->
+                    val isSelected = selectedTemplateId == template.id
                     Surface(
-                        onClick = { selectedListId = list.id },
-                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        onClick = { selectedTemplateId = if (isSelected) null else template.id },
+                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                         shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth().testTag("ActivityType_${list.title}")
+                        modifier = Modifier.fillMaxWidth().testTag("TemplateOption_${template.name}"),
                     ) {
                         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(
                                 selected = isSelected,
-                                onClick = { selectedListId = list.id },
-                                modifier = Modifier.testTag("ActivityRadioButton_${list.title}")
+                                onClick = { selectedTemplateId = if (isSelected) null else template.id },
+                                modifier = Modifier.testTag("TemplateRadioButton_${template.name}"),
                             )
-                            Text(list.title, style = MaterialTheme.typography.bodyLarge)
+                            Text(template.name, style = MaterialTheme.typography.bodyLarge)
                         }
+                    }
+                }
+            }
+
+            item {
+                Text("Activity Type", style = MaterialTheme.typography.titleMedium)
+            }
+
+            item {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search activity type...") },
+                    leadingIcon = { Icon(Icons.Default.Search, null) },
+                    modifier = Modifier.fillMaxWidth().testTag("ActivitySearchInput"),
+                    shape = RoundedCornerShape(12.dp),
+                )
+            }
+
+            items(filteredLists) { list ->
+                val isSelected = selectedListId == list.id
+                Surface(
+                    onClick = { selectedListId = list.id },
+                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().testTag("ActivityType_${list.title}"),
+                ) {
+                    Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(
+                            selected = isSelected,
+                            onClick = { selectedListId = list.id },
+                            modifier = Modifier.testTag("ActivityRadioButton_${list.title}"),
+                        )
+                        Text(list.title, style = MaterialTheme.typography.bodyLarge)
                     }
                 }
             }
