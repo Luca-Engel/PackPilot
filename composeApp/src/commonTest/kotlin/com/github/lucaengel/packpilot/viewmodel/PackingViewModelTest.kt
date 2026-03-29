@@ -815,6 +815,62 @@ class PackingViewModelTest {
         }
 
     @Test
+    fun saveTripItemFeedback_storesAndRetrievesFeedback() =
+        runTest {
+            val repository = PackingRepository(FakeDataStoreManager(), backgroundScope)
+            val viewModel = PackingViewModel(repository)
+            waitForInitialization(viewModel)
+
+            val pastDate = LocalDate(2020, 1, 1)
+            val tripItem = TripItem(id = "item1", name = "Socks", quantity = 3)
+            val trip = Trip(id = "t1", title = "Test Trip", startDate = pastDate, endDate = pastDate, items = listOf(tripItem))
+            repository.addTrip(trip)
+
+            val feedback = TripItemFeedback(
+                itemId = "item1",
+                feedbackType = FeedbackType.BROUGHT_AND_NEEDED,
+                timestamp = 123L,
+            )
+            viewModel.saveTripItemFeedback("t1", feedback)
+
+            viewModel.trips.test {
+                var trips = awaitItem()
+                while (trips["t1"]?.itemFeedback?.isEmpty() != false) trips = awaitItem()
+                val saved = trips["t1"]!!.itemFeedback
+                assertEquals(1, saved.size)
+                assertEquals(FeedbackType.BROUGHT_AND_NEEDED, saved[0].feedbackType)
+                assertEquals("item1", saved[0].itemId)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun saveTripItemFeedback_replacesExistingFeedbackForSameItem() =
+        runTest {
+            val repository = PackingRepository(FakeDataStoreManager(), backgroundScope)
+            val viewModel = PackingViewModel(repository)
+            waitForInitialization(viewModel)
+
+            val pastDate = LocalDate(2020, 1, 1)
+            val tripItem = TripItem(id = "item1", name = "Socks", quantity = 3)
+            val trip = Trip(id = "t1", title = "Test Trip", startDate = pastDate, endDate = pastDate, items = listOf(tripItem))
+            repository.addTrip(trip)
+
+            viewModel.saveTripItemFeedback("t1", TripItemFeedback("item1", FeedbackType.BROUGHT_AND_NEEDED, timestamp = 1L))
+            viewModel.saveTripItemFeedback("t1", TripItemFeedback("item1", FeedbackType.QUANTITY_WAS_OFF, suggestedQuantity = 5, timestamp = 2L))
+
+            viewModel.trips.test {
+                var trips = awaitItem()
+                while (trips["t1"]?.itemFeedback?.firstOrNull()?.feedbackType != FeedbackType.QUANTITY_WAS_OFF) trips = awaitItem()
+                val saved = trips["t1"]!!.itemFeedback
+                assertEquals(1, saved.size, "Second save should replace the first for the same item")
+                assertEquals(FeedbackType.QUANTITY_WAS_OFF, saved[0].feedbackType)
+                assertEquals(5, saved[0].suggestedQuantity)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
     fun saveReviewedTripAsTemplate_marksTrip_asReviewed() =
         runTest {
             val repository = PackingRepository(FakeDataStoreManager(), backgroundScope)
