@@ -7,10 +7,11 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 
 class PostTripReviewScreenRobot(
@@ -20,6 +21,10 @@ class PostTripReviewScreenRobot(
         SemanticsMatcher("TestTag contains $substring") {
             it.config.getOrNull(SemanticsProperties.TestTag)?.contains(substring) == true
         }
+
+    private fun scrollListToNode(matcher: SemanticsMatcher) {
+        composeTestRule.onNodeWithTag("ReviewItemsList").performScrollToNode(matcher)
+    }
 
     fun assertTripSummaryCardDisplayed() {
         composeTestRule.onNodeWithTag("ReviewTripSummaryCard").assertIsDisplayed()
@@ -38,15 +43,14 @@ class PostTripReviewScreenRobot(
     }
 
     fun assertItemDisplayed(name: String) {
-        composeTestRule.onNode(hasTestTagContaining("ReviewItemRow_$name"))
-            .performScrollTo()
-            .assertIsDisplayed()
+        val matcher = hasTestTagContaining("ReviewItemRow_$name")
+        scrollListToNode(matcher)
+        composeTestRule.onNode(matcher).assertIsDisplayed()
     }
 
     fun assertCategoryHeaderDisplayed(categoryName: String) {
-        composeTestRule.onNodeWithTag("ReviewCategoryHeader_$categoryName")
-            .performScrollTo()
-            .assertIsDisplayed()
+        scrollListToNode(hasTestTag("ReviewCategoryHeader_$categoryName"))
+        composeTestRule.onNodeWithTag("ReviewCategoryHeader_$categoryName").assertIsDisplayed()
     }
 
     fun clickSaveAsTemplate() {
@@ -82,15 +86,15 @@ class PostTripReviewScreenRobot(
     }
 
     fun clickFeedbackButton(feedbackTypeName: String, itemId: String) {
-        composeTestRule.onNodeWithTag("FeedbackButton_${feedbackTypeName}_$itemId")
-            .performScrollTo()
-            .performClick()
+        val tag = "FeedbackButton_${feedbackTypeName}_$itemId"
+        scrollListToNode(hasTestTag(tag))
+        composeTestRule.onNodeWithTag(tag).performClick()
     }
 
     fun assertFeedbackButtonDisplayed(feedbackTypeName: String, itemId: String) {
-        composeTestRule.onNodeWithTag("FeedbackButton_${feedbackTypeName}_$itemId")
-            .performScrollTo()
-            .assertIsDisplayed()
+        val tag = "FeedbackButton_${feedbackTypeName}_$itemId"
+        scrollListToNode(hasTestTag(tag))
+        composeTestRule.onNodeWithTag(tag).assertIsDisplayed()
     }
 
     fun assertFeedbackQuantityInputDisplayed(itemId: String) {
@@ -126,15 +130,15 @@ class PostTripReviewScreenRobot(
     }
 
     fun assertOriginalQtyDisplayed(itemId: String, text: String) {
-        composeTestRule.onNodeWithTag("ReviewItemOriginalQty_$itemId")
-            .performScrollTo()
-            .assertTextEquals(text)
+        val tag = "ReviewItemOriginalQty_$itemId"
+        scrollListToNode(hasTestTag(tag))
+        composeTestRule.onNodeWithTag(tag).assertTextEquals(text)
     }
 
     fun assertSuggestedQtyDisplayed(itemId: String, text: String) {
-        composeTestRule.onNodeWithTag("ReviewItemSuggestedQty_$itemId")
-            .performScrollTo()
-            .assertTextEquals(text)
+        val tag = "ReviewItemSuggestedQty_$itemId"
+        scrollListToNode(hasTestTag(tag))
+        composeTestRule.onNodeWithTag(tag).assertTextEquals(text)
     }
 }
 
